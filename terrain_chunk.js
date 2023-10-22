@@ -103,6 +103,7 @@ class TerrainChunk
         let bb = this.mesh.geometry.boundingBox;
         this.mesh.position.set(this.info.position.x - bb.min.x, 0, this.info.position.y + bb.min.z);
         this.mesh_center = new THREE.Vector3(this.info.position.x + this.info.size.w / 2, (bb.min.y + bb.max.y) / 2, this.info.position.y - this.info.size.h / 2);    // Need to know the position of the bounding box center for LOD functionality.
+        this.mesh.layers.enable(1);      // all terrain meshes must be a member of layer 1. Needed for terrain raycasting.
         //console.log(this.mesh_center);
         this.scene.add(this.mesh);
         //this.bbox = new THREE.BoxHelper( this.mesh, 0x000000 );

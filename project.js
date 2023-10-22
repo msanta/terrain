@@ -151,6 +151,7 @@ class Project
     {
         // TODO: check why this fails with certain terrains!
         const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 9999, y), new THREE.Vector3(0, -1, 0), 0, 10000);
+        raycaster.layers.set(1);    // only test against terrain meshes
         console.log(this.scene.children);
         const intersects = raycaster.intersectObjects(this.scene.children);
         if (intersects.length == 0) return -9999;

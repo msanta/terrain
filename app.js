@@ -200,6 +200,7 @@ class App
     {
         let pointer = {x: 0, y: 0};
         const raycaster = new THREE.Raycaster();
+        raycaster.layers.set(1);    // only test against terrain meshes
 
         pointer.x = ( e.clientX / this.renderer.domElement.width ) * 2 - 1;
         pointer.y = - ( e.clientY / this.renderer.domElement.height ) * 2 + 1;
