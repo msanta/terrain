@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+		</style>
+        <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css" />
+        <script src="./jszip/jszip.min.js"></script>
+        <script src="./jquery/jquery-3.7.0.min.js"></script>
+        <script src="./bootstrap/js/bootstrap.bundle.min.js"></script>
+	</head>
+	<body>
+
+        <script type="importmap">
+			{
+				"imports": {
+					"three": "./three.module.min.js"
+				}
+			}
+		</script>
+        
+        <button type="button" class="btn btn-sm btn-secondary menu-btn" style="position:absolute; top: 0px; z-index:200" id="menubtn" data-bs-toggle="offcanvas"
+            data-bs-target="#menu">
+            Menu
+        </button>
+
+        <div id="fps" style="position: absolute;
+        top: 10px;
+        width: 100%;
+        text-align: center;
+        z-index: 100;
+        display:block;
+        user-select: none;">FPS</div>
+
+        <div id="profiler" style="position: absolute;
+        top: 30px;
+        width: 100%;
+        text-align: left;
+        z-index: 100;
+        display:block;
+        user-select: none;">Profiler Info</div>
+
+        <div id="geolocation" style="position: absolute;
+        bottom: 0px;
+        width: 100%;
+        text-align: left;
+        z-index: 100;
+        display:block;
+        user-select: none;">Location Info</div>
+
+        <div id="triangles" style="position: absolute;
+        top: 10px;
+        width: 100%;
+        text-align: right;
+        z-index: 100;
+        display:block;
+        user-select: none;">TRIANGLES</div>
+
+        <div id="loadtime" style="position: absolute;
+        top: 30px;
+        width: 100%;
+        text-align: right;
+        z-index: 100;
+        display:block;
+        user-select: none;">Load time</div>
+
+        <div class="offcanvas offcanvas-start" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="menu"
+        aria-labelledby="menu-label" aria-controls="menu">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="menu-label">Menu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <input type="file" accept=".zip" id="filebrowser" style="display:none"/><button id="filebrowserbtn">Open Project</button>
+            </div>
+        </div>
+
+	</body>
+
+    <script>
+        const registerServiceWorker = async () => {
+            if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register(
+                'sw.js',
+                {
+                    scope: './',
+                }
+                );
+                if (registration.installing) {
+                console.log('Service worker installing');
+                } else if (registration.waiting) {
+                console.log('Service worker installed');
+                } else if (registration.active) {
+                console.log('Service worker active');
+                }
+            } catch (error) {
+                console.error(`Registration failed with ${error}`);
+            }
+            }
+        };
+
+        registerServiceWorker();
+
+    </script>
+    
+    <script type="module">
+        import {App} from './app.js';
+
+        let fileurl = null;
+        let app = new App();
+        app.initialise();
+
+        $('#filebrowserbtn').on('click', show_file_browser);
+        $('#filebrowser').on('change', file_selected);
+
+        function show_file_browser()
+        {
+            $('#filebrowser').click();
+        }
+
+        async function file_selected()
+        {
+            let el = $('#filebrowser').get(0);
+            if (!el.files.length) return; 
+            let file = el.files[0];
+            if (fileurl) URL.revokeObjectURL(fileurl);  // remove existing reference
+            fileurl = URL.createObjectURL(file);
+            app.load_project(fileurl);
+            el.value = '';  // allows for reloading of same project file (change event does not fire if the same file is selected)
+        }
+        
+    </script>
+</html>
