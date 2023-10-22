@@ -1,7 +1,9 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
+const app_version = "v1.0";
+
 const addResourcesToCache = async (resources) => {
-    const cache = await caches.open("v3");
+    const cache = await caches.open(app_version);
     await cache.addAll(resources);
 };
 
@@ -51,7 +53,7 @@ const deleteCache = async (key) => {
 };
 
 const deleteOldCaches = async () => {
-    const cacheKeepList = ["v3"];
+    const cacheKeepList = [app_version];
     const keyList = await caches.keys();
     const cachesToDelete = keyList.filter((key) => !cacheKeepList.includes(key));
     console.log(cachesToDelete);

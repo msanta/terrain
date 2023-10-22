@@ -112,12 +112,14 @@ class GPSPositionMarker extends PositionMarker
         if (accuracy > 50) accuracy = 50;
         accuracy *= 2;      // remember to double for drawing the sphere!
         this.accuracy_mesh.position.set(position.x, position.y, position.z);
-        this.accuracy_mesh.scale.set(accuracy, 1, accuracy);
+        let height_scale = accuracy / 100;
+        if (height_scale < 0.1) height_scale = 0.1;
+        this.accuracy_mesh.scale.set(accuracy, height_scale, accuracy);
     }
 
     /**
      * Sets the visibility.
-     * @param {bool} is_visible 
+     * @param {bool} is_visible
      */
     visible(is_visible)
     {
