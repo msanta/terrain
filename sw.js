@@ -22,7 +22,7 @@ self.addEventListener("install", (event) => {
             "./deviceposition.js",
             "./terrain.js",
             "./terrain_chunk.js",
-            "./geodesy/position_marker.js",
+            "./position_marker.js",
             "./geodesy/latlon-ellipsoidal-datum.js",
             "./geodesy/latlon-ellipsoidal.js",
             "./geodesy/dms.js",
