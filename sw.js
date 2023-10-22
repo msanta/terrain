@@ -1,7 +1,7 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
 const addResourcesToCache = async (resources) => {
-    const cache = await caches.open("v1");
+    const cache = await caches.open("v2");
     await cache.addAll(resources);
 };
 
@@ -22,6 +22,11 @@ self.addEventListener("install", (event) => {
             "./deviceposition.js",
             "./terrain.js",
             "./terrain_chunk.js",
+            "./geodesy/position_marker.js",
+            "./geodesy/latlon-ellipsoidal-datum.js",
+            "./geodesy/latlon-ellipsoidal.js",
+            "./geodesy/dms.js",
+            "./geodesy/vector3d.js"
         ]),
     );
 });
@@ -46,7 +51,7 @@ const deleteCache = async (key) => {
 };
 
 const deleteOldCaches = async () => {
-    const cacheKeepList = ["v1"];
+    const cacheKeepList = ["v2"];
     const keyList = await caches.keys();
     const cachesToDelete = keyList.filter((key) => !cacheKeepList.includes(key));
     console.log(cachesToDelete);

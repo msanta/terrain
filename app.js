@@ -4,6 +4,7 @@ import { Project } from './project.js';
 import { Profiler } from './profiler.js';
 import { Vector3 } from './three.module.min.js';
 import { DevicePosition } from './deviceposition.js';
+import { PositionMarker } from './position_marker.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -15,6 +16,7 @@ class App
     camera;
     controls;
     light;
+    devicepos;
 
     debuginfo = {};
     prv_cam_pos = {};
@@ -22,6 +24,8 @@ class App
     project;
 
     #lod_update_timeout = undefined;
+
+    #position_marker = null;
 
     constructor()
     {
@@ -42,9 +46,9 @@ class App
         this.#render_loop();
         let self = this;
         this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
-
-        const devicepos = new DevicePosition(document.getElementById('geolocation'));
-        devicepos.init_geolocation();
+        this.devicepos = new DevicePosition(() => self.#on_position_update(), document.getElementById('geolocation'));
+        this.#position_marker = new PositionMarker(this.scene);
+        this.#position_marker.mesh.visible = false;
     }
 
     load_project(file)
@@ -58,6 +62,24 @@ class App
     {
         if (this.project) this.project.unload_project();
         this.project = null;
+    }
+
+    /**
+     * Tell the app to turn on GPS
+     */
+    start_geolocation()
+    {
+        this.devicepos.init_geolocation();
+        this.#position_marker.mesh.visible = true;
+    }
+
+    /**
+     * Tell the app to turn off GPS
+     */
+    stop_geolocation()
+    {
+        this.devicepos.stop_geolocation();
+        this.#position_marker.mesh.visible = false;
     }
 
     #setup_renderer()
@@ -201,6 +223,21 @@ class App
 
         this.controls.target = point;
         this.controls.update();
+    }
+
+    /**
+     * Called when GPS location is updated.
+     */
+    #on_position_update()
+    {
+        if (this.project)
+        {
+            let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
+            let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
+            console.log(this.devicepos, utm, pos);
+            this.#position_marker.mesh.position.set(pos.x, pos.y, pos.z);
+        }
+        
     }
 
 }

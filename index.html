@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>My first three.js app</title>
+		<title>Terrain Viewer</title>
 		<style>
 			body { margin: 0; }
 		</style>
@@ -22,50 +22,53 @@
 			}
 		</script>
         
-        <button type="button" class="btn btn-sm btn-secondary menu-btn" style="position:absolute; top: 0px; z-index:200" id="menubtn" data-bs-toggle="offcanvas"
+        <button type="button" class="btn btn btn-primary menu-btn" style="position:absolute; top: 0px; z-index:200" id="menubtn" data-bs-toggle="offcanvas"
             data-bs-target="#menu">
             Menu
         </button>
 
-        <div id="fps" style="position: absolute;
-        top: 10px;
-        width: 100%;
-        text-align: center;
-        z-index: 100;
-        display:block;
-        user-select: none;">FPS</div>
+        <div id="debug_info">
+            
+            <div id="fps" style="position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display:block;
+            user-select: none;">FPS</div>
 
-        <div id="profiler" style="position: absolute;
-        top: 30px;
-        width: 100%;
-        text-align: left;
-        z-index: 100;
-        display:block;
-        user-select: none;">Profiler Info</div>
+            <div id="profiler" style="position: absolute;
+            top: 30px;
+            width: 100%;
+            text-align: left;
+            z-index: 100;
+            display:block;
+            user-select: none;">Profiler Info</div>
 
-        <div id="geolocation" style="position: absolute;
-        bottom: 0px;
-        width: 100%;
-        text-align: left;
-        z-index: 100;
-        display:block;
-        user-select: none;">Location Info</div>
+            <div id="geolocation" style="position: absolute;
+            bottom: 0px;
+            width: 100%;
+            text-align: left;
+            z-index: 100;
+            display:block;
+            user-select: none;">Location Info</div>
 
-        <div id="triangles" style="position: absolute;
-        top: 10px;
-        width: 100%;
-        text-align: right;
-        z-index: 100;
-        display:block;
-        user-select: none;">TRIANGLES</div>
+            <div id="triangles" style="position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: right;
+            z-index: 100;
+            display:block;
+            user-select: none;">TRIANGLES</div>
 
-        <div id="loadtime" style="position: absolute;
-        top: 30px;
-        width: 100%;
-        text-align: right;
-        z-index: 100;
-        display:block;
-        user-select: none;">Load time</div>
+            <div id="loadtime" style="position: absolute;
+            top: 30px;
+            width: 100%;
+            text-align: right;
+            z-index: 100;
+            display:block;
+            user-select: none;">Load time</div>
+        </div>
 
         <div class="offcanvas offcanvas-start" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="menu"
         aria-labelledby="menu-label" aria-controls="menu">
@@ -74,7 +77,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body">
-                <input type="file" accept=".zip" id="filebrowser" style="display:none"/><button id="filebrowserbtn">Open Project</button>
+                <div>
+                    <input type="file" accept=".zip" id="filebrowser" style="display:none"/>
+                    <button type="button" id="filebrowserbtn" class="btn btn-primary">Open Project</button>
+                </div>
+                <hr />
+                <div>
+                    <button type="button" id="gps_toggle_btn" class="btn btn-secondary">Turn on GPS</button>
+                </div>
+                <hr />
+                <div>
+                    <button type="button" id="debug_toggle_btn" class="btn btn-info">Show debug info</button>
+                </div>
             </div>
         </div>
 
@@ -110,12 +124,16 @@
     <script type="module">
         import {App} from './app.js';
 
+        let gps_status = false;
+        let debug_status = false;
         let fileurl = null;
         let app = new App();
         app.initialise();
 
         $('#filebrowserbtn').on('click', show_file_browser);
         $('#filebrowser').on('change', file_selected);
+        $('#gps_toggle_btn').on('click', toggle_gps);
+        $('#debug_toggle_btn').on('click', toggle_debug);
 
         function show_file_browser()
         {
@@ -131,6 +149,38 @@
             fileurl = URL.createObjectURL(file);
             app.load_project(fileurl);
             el.value = '';  // allows for reloading of same project file (change event does not fire if the same file is selected)
+        }
+
+        function toggle_gps()
+        {
+            if (!gps_status)
+            {
+                app.start_geolocation();
+                gps_status = true;
+                $(this).text('Turn off GPS');
+            }
+            else
+            {
+                app.stop_geolocation();
+                gps_status = false;
+                $(this).text('Turn on GPS');
+            }
+        }
+
+        function toggle_debug()
+        {
+            if (!debug_status)
+            {
+                debug_status = true;
+                $(this).text('Hide debug info');
+                $('#debug_info').show();
+            }
+            else
+            {
+                debug_status = false;
+                $(this).text('Show debug info');
+                $('#debug_info').hide();
+            }
         }
         
     </script>

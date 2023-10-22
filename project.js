@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Terrain, TerrainInfo } from './terrain.js';
 import { Profiler } from './profiler.js';
-import { Vector3 } from './three.module.min.js';
+import * as UTM from './geodesy/utm.js';
 
 class Project
 {
@@ -92,6 +92,37 @@ class Project
         {
             terrain.camera_position_update(camera);
         }
+    }
+
+    /**
+     * Converts a latitude and longitude into UTM.
+     * @param {number} lat 
+     * @param {number} lon 
+     * @return {object} Object containing the easting, northing and zone values.
+     */
+    convert_latlon_to_utm(lat, lon)
+    {
+        let latlon = new UTM.LatLon(lat, lon);
+        let utm = latlon.toUtm();
+        return {zone: utm.zone, easting: utm.easting.toFixed(0), northing: utm.northing.toFixed(0)};
+        // let test = new UTM.LatLon(-33.76329230013953, 150.6548683296836);
+    // console.log(test.toUtm().toString());
+    // test = new UTM.LatLon(-33.7633156, 150.6548521);
+    // console.log(test.toUtm().toString());
+    }
+
+    /**
+     * Gets a 3D position for a UTM coordinate.
+     * @param {number} easting 
+     * @param {number} northing
+     * @return {THREE.Vector3}
+     */
+    get_3dposition_for_utm(easting, northing)
+    {
+        let x = easting - this.project_info.origin.x;
+        let z = -(northing - this.project_info.origin.y);
+        let y = this.#get_terrain_height_at_location(x, z);
+        return new THREE.Vector3(x, y, z);
     }
 
     #load_terrain(info, buf)
