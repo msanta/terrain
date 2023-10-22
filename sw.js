@@ -1,7 +1,7 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
 const addResourcesToCache = async (resources) => {
-    const cache = await caches.open("v2");
+    const cache = await caches.open("v3");
     await cache.addAll(resources);
 };
 
