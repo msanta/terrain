@@ -4,7 +4,7 @@ import { Project } from './project.js';
 import { Profiler } from './profiler.js';
 import { Vector3 } from './three.module.min.js';
 import { DevicePosition } from './deviceposition.js';
-import { PositionMarker } from './position_marker.js';
+import { GPSPositionMarker } from './position_marker.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -25,7 +25,7 @@ class App
 
     #lod_update_timeout = undefined;
 
-    #position_marker = null;
+    #gps_marker = null;
 
     constructor()
     {
@@ -47,8 +47,8 @@ class App
         let self = this;
         this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
         this.devicepos = new DevicePosition(() => self.#on_position_update(), document.getElementById('geolocation'));
-        this.#position_marker = new PositionMarker(this.scene);
-        this.#position_marker.mesh.visible = false;
+        this.#gps_marker = new GPSPositionMarker(this.scene);
+        this.#gps_marker.visible(false);
     }
 
     load_project(file)
@@ -70,7 +70,7 @@ class App
     start_geolocation()
     {
         this.devicepos.init_geolocation();
-        this.#position_marker.mesh.visible = true;
+        this.#gps_marker.visible(true);
     }
 
     /**
@@ -79,7 +79,7 @@ class App
     stop_geolocation()
     {
         this.devicepos.stop_geolocation();
-        this.#position_marker.mesh.visible = false;
+        this.#gps_marker.visible(false);
     }
 
     #setup_renderer()
@@ -92,7 +92,7 @@ class App
         this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
         this.controls = new OrbitControls( this.camera, this.renderer.domElement );
         this.controls.maxDistance = 10000;
-        this.controls.minDistance = 100;
+        this.controls.minDistance = 50;
 
         const axesHelper = new THREE.AxesHelper( 200 );
         this.scene.add( axesHelper );
@@ -105,9 +105,9 @@ class App
         this.scene.add( this.light.target);
         this.light.target.position.set(0, 0, 0);
 
-        const helper = new THREE.DirectionalLightHelper( this.light, 30 );
-        this.scene.add( helper );
-        this.debuginfo.lighthelper = helper;
+        // const helper = new THREE.DirectionalLightHelper( this.light, 30 );
+        // this.scene.add( helper );
+        // this.debuginfo.lighthelper = helper;
 
         
     }
@@ -158,7 +158,7 @@ class App
         let x = center.x - dist * Math.sin(radians.y) * 1;
         this.light.target.position.set(x, 0, z);
 
-        this.debuginfo.lighthelper.update();
+        //this.debuginfo.lighthelper.update();
     }
 
     #update_lod()
@@ -236,7 +236,7 @@ class App
             let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             console.log(this.devicepos, utm, pos);
-            this.#position_marker.mesh.position.set(pos.x, pos.y, pos.z);
+            this.#gps_marker.set_position(pos, this.devicepos.accuracy);
         }
         
     }
