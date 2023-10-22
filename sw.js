@@ -51,7 +51,7 @@ const deleteCache = async (key) => {
 };
 
 const deleteOldCaches = async () => {
-    const cacheKeepList = ["v2"];
+    const cacheKeepList = ["v3"];
     const keyList = await caches.keys();
     const cachesToDelete = keyList.filter((key) => !cacheKeepList.includes(key));
     console.log(cachesToDelete);
