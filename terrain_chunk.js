@@ -44,10 +44,11 @@ class TerrainChunk
     #generate_chunk()
     {
         const view = new DataView(this.data_buffer);
+        if (this.info.lod < this.info.native_resolution) this.info.lod = this.info.native_resolution;
         let width = this.info.size.w;
         let height = this.info.size.h;
-        let segments_w = (this.info.size.w) / (this.info.native_resolution * this.info.lod);
-        let segments_h = (this.info.size.h) / (this.info.native_resolution * this.info.lod);
+        let segments_w = this.info.size.w / this.info.lod;
+        let segments_h = this.info.size.h / this.info.lod;
         window._data.profiler.start_section('create geometry');
         var geometry = this.#create_or_copy_plane(width, height, segments_w, segments_h);
         window._data.profiler.end_section('create geometry');
@@ -64,8 +65,8 @@ class TerrainChunk
             for (let col = 0; col < segments_w + 1; col++)
             {
                 index = (row * (segments_w + 1) + col) * 3;
-                bx = this.info.data_offset.x + col * this.info.lod;
-                by = this.info.data_offset.y * this.info.data_size.h + row * this.info.lod * this.info.data_size.h;
+                bx = this.info.data_offset.x + col * this.info.lod / this.info.native_resolution;
+                by = this.info.data_offset.y * this.info.data_size.h + row * this.info.lod / this.info.native_resolution * this.info.data_size.h;
                 try {
                     val = view.getUint16((bx + by) * 2);
                 }catch(e){

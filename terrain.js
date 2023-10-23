@@ -43,8 +43,8 @@ class Terrain
     #generate_terrain()
     {
         // Generate chunks for the terrain.
-        let chunks_x = (this.info.data_size.w - 1) / this.info.chunk_size;
-        let chunks_y = (this.info.data_size.h - 1) / this.info.chunk_size;
+        let chunks_x = this.info.size.w / this.info.chunk_size;
+        let chunks_y = this.info.size.h / this.info.chunk_size;
         for (let x = 0; x < chunks_x; x++)
         {
             for (let y = 0; y < chunks_y; y++)
@@ -57,8 +57,8 @@ class Terrain
                     y: this.info.position.y - this.info.size.h + this.info.chunk_size * (x + 1)
                 };
                 TCI.data_offset = {
-                    x: this.info.chunk_size * y,
-                    y: this.info.chunk_size * x
+                    x: this.info.chunk_size / this.info.native_resolution * y,
+                    y: this.info.chunk_size / this.info.native_resolution * x
                 };
                 TCI.native_resolution = this.info.native_resolution;
                 TCI.lod = 20;
@@ -76,7 +76,10 @@ class Terrain
         frustum.setFromProjectionMatrix(camera.projectionMatrix)
         frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
 
-        let levels = {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10};
+        let levels = {
+            1: {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10},
+            2: {3000: 2, 6000: 4, 10000: 8}
+        }
         //let levels = {2000: 1, 8000: 2, 20000: 4};
         let pos = camera.position;
         let inbb = [];
@@ -92,11 +95,11 @@ class Terrain
                 let dist = pos.distanceTo(chunk.mesh_center);
                 //console.log(dist);
                 let use_lod = this.info.chunk_size / 2;
-                for (let l in levels)
+                for (let l in levels[this.info.native_resolution])
                 {
                     if (dist <= l)
                     {
-                        use_lod = levels[l];
+                        use_lod = levels[this.info.native_resolution][l];
                         break;
                     }
                 }

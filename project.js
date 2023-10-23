@@ -129,7 +129,7 @@ class Project
     {
         let TI = new TerrainInfo();
         TI.chunk_size = 400;
-        TI.data_size = {w: info.size.x + 1, h: info.size.y + 1};
+        TI.data_size = {w: info.size.x / info.resolution + 1, h: info.size.y / info.resolution + 1};
         TI.size = {w: info.size.x, h: info.size.y};
         TI.position = {
             x: info.pos.x - this.project_info.origin.x, 
