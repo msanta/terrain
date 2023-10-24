@@ -8,11 +8,15 @@
 			body { margin: 0; }
 		</style>
         <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="./app.css" />
         <script src="./jszip/jszip.min.js"></script>
         <script src="./jquery/jquery-3.7.0.min.js"></script>
         <script src="./bootstrap/js/bootstrap.bundle.min.js"></script>
 	</head>
 	<body>
+
+            <canvas id="render_canvas"></canvas>
+          
 
         <script type="importmap">
 			{
@@ -83,14 +87,20 @@
                 </div>
                 <hr />
                 <div>
-                    <button type="button" id="gps_toggle_btn" class="btn btn-secondary">Turn on GPS</button>
+                    <input type="file" accept=".kml,.kmz" id="filebrowser2" style="display:none"/>
+                    <button type="button" id="filebrowserbtn2" class="btn btn-primary">Open KML</button>
                 </div>
                 <hr />
                 <div>
+                    <button type="button" id="gps_toggle_btn" class="btn btn-secondary">Turn on GPS</button>
+                </div>
+                <hr />
+                <div style="position: absolute; bottom: 10px">
                     <button type="button" id="debug_toggle_btn" class="btn btn-info">Show debug info</button>
                 </div>
             </div>
         </div>
+
 
 	</body>
 
@@ -127,13 +137,17 @@
         let gps_status = false;
         let debug_status = false;
         let fileurl = null;
+        let fileurl2 = null;
         let app = new App();
         app.initialise();
 
         $('#filebrowserbtn').on('click', show_file_browser);
         $('#filebrowser').on('change', file_selected);
+        $('#filebrowserbtn2').on('click', show_file_browser2);
+        $('#filebrowser2').on('change', file_selected2);
         $('#gps_toggle_btn').on('click', toggle_gps);
         $('#debug_toggle_btn').on('click', toggle_debug);
+        $('#label1').on('click', () => console.log('clicked on label1'));
 
         function show_file_browser()
         {
@@ -149,6 +163,21 @@
             fileurl = URL.createObjectURL(file);
             app.load_project(fileurl);
             el.value = '';  // allows for reloading of same project file (change event does not fire if the same file is selected)
+        }
+
+        function show_file_browser2()
+        {
+            $('#filebrowser2').click();
+        }
+
+        async function file_selected2()
+        {
+            let el = $('#filebrowser2').get(0);
+            if (!el.files.length) return; 
+            let file = el.files[0];
+            if (fileurl2) URL.revokeObjectURL(fileurl2);  // remove existing reference
+            fileurl2 = URL.createObjectURL(file);
+            app.load_kml(fileurl2);
         }
 
         function toggle_gps()

@@ -4,7 +4,8 @@ import { Project } from './project.js';
 import { Profiler } from './profiler.js';
 import { Vector3 } from './three.module.min.js';
 import { DevicePosition } from './deviceposition.js';
-import { GPSPositionMarker } from './position_marker.js';
+import { GPSPositionMarker, PositionMarker } from './position_marker.js';
+import { KML } from './kml.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -20,12 +21,17 @@ class App
 
     debuginfo = {};
     prv_cam_pos = {};
-
+    /**
+     * @type {Project} The project instance for this app.
+     */
     project;
+
+    kml;
 
     #lod_update_timeout = undefined;
 
     #gps_marker = null;
+    #locations = [];
 
     constructor()
     {
@@ -82,9 +88,31 @@ class App
         this.#gps_marker.visible(false);
     }
 
+    async load_kml(file)
+    {
+        if (this.#locations.length > 0) {
+            //need to remove existing locations
+        }
+        let kml = new KML();
+        this.kml = await kml.load(file);
+        for (let location of this.kml.locations)
+        {
+            //console.log(location);
+            let utm = this.project.convert_latlon_to_utm(location.lat, location.lon);
+            let x = utm.easting - this.project.project_info.origin.x;
+            let z = utm.northing - this.project.project_info.origin.y;
+            let y = this.project.get_terrain_height_at_location(x, -z);
+            let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
+            this.#locations.push(marker);
+            console.log(location.name, x,y,-z);
+        }
+    }
+
+
     #setup_renderer()
     {
-        this.renderer = new THREE.WebGLRenderer();
+
+        this.renderer = new THREE.WebGLRenderer({canvas: document.getElementById('render_canvas')});
         this.renderer.setSize( window.innerWidth, window.innerHeight );
         document.body.appendChild( this.renderer.domElement );
 
