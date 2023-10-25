@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.2.0";
+const app_version = "v1.2.1";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -12,7 +12,10 @@ self.addEventListener("install", (event) => {
         addResourcesToCache([
             "./",
             "./index.html",
+            // css
             "./bootstrap/css/bootstrap.min.css",
+            "./app.css",
+            // scripts
             "./bootstrap/js/bootstrap.bundle.min.js",
             "./jquery/jquery-3.7.0.min.js",
             "./jszip/jszip.min.js",
@@ -28,7 +31,9 @@ self.addEventListener("install", (event) => {
             "./geodesy/latlon-ellipsoidal-datum.js",
             "./geodesy/latlon-ellipsoidal.js",
             "./geodesy/dms.js",
-            "./geodesy/vector3d.js"
+            "./geodesy/vector3d.js",
+            "./geodesy/utm.js",
+            "./kml.js"
         ]),
     );
 });
