@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 		<title>Terrain Viewer</title>
 		<style>
 			body { margin: 0; }
@@ -15,8 +15,10 @@
 	</head>
 	<body>
 
-            <canvas id="render_canvas"></canvas>
-          
+        <div id="container">
+            <canvas id="render_canvas" ></canvas>
+            <div id="labels"></div>
+        </div>
 
         <script type="importmap">
 			{
@@ -78,7 +80,7 @@
         aria-labelledby="menu-label" aria-controls="menu">
             <div class="offcanvas-header">
                 <h5 class="offcanvas-title" id="menu-label">Menu</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <button type="button" id="close_menu_btn" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body">
                 <div>
@@ -177,7 +179,8 @@
             let file = el.files[0];
             if (fileurl2) URL.revokeObjectURL(fileurl2);  // remove existing reference
             fileurl2 = URL.createObjectURL(file);
-            app.load_kml(fileurl2);
+            await app.load_kml(fileurl2);
+            $('#close_menu_btn').click();
         }
 
         function toggle_gps()

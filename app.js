@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { OrbitControls } from './addons/controls/OrbitControls.js';
+// import { OrbitControls } from './addons/controls/OrbitControls.js';
+import { MapControls } from './addons/controls/MapControls.js';
 import { Project } from './project.js';
 import { Profiler } from './profiler.js';
 import { Vector3 } from './three.module.min.js';
@@ -20,7 +21,7 @@ class App
     devicepos;
 
     debuginfo = {};
-    prv_cam_pos = {};
+    prv_cam_state;
     /**
      * @type {Project} The project instance for this app.
      */
@@ -39,7 +40,7 @@ class App
             triangle_cnt: 0,
             fps: {start: Date.now(), cnt: 0}
         };
-        this.prv_cam_pos = {x:0, y:0, z:0};
+        this.prv_cam_state = {rot: new THREE.Vector3(), pos: new THREE.Vector3()};
         window._data = {};
         window._data.profiler = Profiler;
         this.profiler = Profiler;
@@ -92,9 +93,20 @@ class App
     {
         if (this.#locations.length > 0) {
             //need to remove existing locations
+            for (let location of this.#locations)
+            {
+                location.destroy();
+            }
+            this.#locations = [];
+        }
+        if (!this.project)
+        {
+            alert('Need to load a project before a KML file can be loaded');
+            return;
         }
         let kml = new KML();
         this.kml = await kml.load(file);
+        let labels_container = document.getElementById('labels');
         for (let location of this.kml.locations)
         {
             //console.log(location);
@@ -102,9 +114,11 @@ class App
             let x = utm.easting - this.project.project_info.origin.x;
             let z = utm.northing - this.project.project_info.origin.y;
             let y = this.project.get_terrain_height_at_location(x, -z);
+            if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
             let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
+            marker.set_label(location.name);
             this.#locations.push(marker);
-            console.log(location.name, x,y,-z);
+            //console.log(location.name, x,y,-z);
         }
     }
 
@@ -115,17 +129,24 @@ class App
         this.renderer = new THREE.WebGLRenderer({canvas: document.getElementById('render_canvas')});
         this.renderer.setSize( window.innerWidth, window.innerHeight );
         document.body.appendChild( this.renderer.domElement );
+        let self = this;
+        window.addEventListener('resize', (e) => {
+            self.camera.aspect = window.innerWidth / window.innerHeight;
+            self.camera.updateProjectionMatrix();
+            self.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
-        this.controls = new OrbitControls( this.camera, this.renderer.domElement );
-        this.controls.maxDistance = 10000;
+        this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 15000 );
+        this.controls = new MapControls( this.camera, this.renderer.domElement );
+        this.controls.maxDistance = 15000;
         this.controls.minDistance = 50;
+        this.controls.zoomToCursor = true;
 
         const axesHelper = new THREE.AxesHelper( 200 );
         this.scene.add( axesHelper );
 
-        this.scene.background = new THREE.Color(0.2,0.2,0.2);
+        this.scene.background = new THREE.Color(0.66,0.89,0.95);
 
         // White directional light shining from the top.
         this.light = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -136,16 +157,18 @@ class App
         // const helper = new THREE.DirectionalLightHelper( this.light, 30 );
         // this.scene.add( helper );
         // this.debuginfo.lighthelper = helper;
-
-        
     }
 
     #render_loop()
     {
         let self = this;
+        let view_change = false;
+        
         requestAnimationFrame( () => {self.#render_loop() });
         // required if controls.enableDamping or controls.autoRotate are set to true
         this.controls.update();
+
+        if (!this.prv_cam_state.rot.equals(this.camera.rotation) || !this.prv_cam_state.pos.equals(this.camera.position)) view_change = true;
     
         this.renderer.render( this.scene, this.camera );
         if (this.renderer.info.render.triangles != this.debuginfo.triangle_cnt){
@@ -155,25 +178,29 @@ class App
             el.innerHTML = this.debuginfo.triangle_cnt;
         }
 
-        this.#update_light();
-
-        if (this.project && (this.camera.position.x != this.prv_cam_pos.x || this.camera.position.y != this.prv_cam_pos.y || this.camera.position.z != this.prv_cam_pos.z))
+        if (view_change)
         {
-            clearTimeout(this.#lod_update_timeout);
-            let self = this;
-            this.#lod_update_timeout = setTimeout((() => {self.#update_lod()}), 500);  // wait half a second before updating meshes to ensure the user has stopped moving. This is more of an issue on mobile devices. On desktops this delay could be reduced considerably.
+            this.#update_marker_labels();
+            this.#update_light();
+
+            if (this.project)
+            {
+                clearTimeout(this.#lod_update_timeout);
+                let self = this;
+                this.#lod_update_timeout = setTimeout((() => {self.#update_lod()}), 500);  // wait half a second before updating meshes to ensure the user has stopped moving. This is more of an issue on mobile devices. On desktops this delay could be reduced considerably.
+            }
         }
-    
+
         this.prv_cam_pos = {x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z};
     
-        this.#calc_fps();
+        this.prv_cam_state.rot = this.camera.rotation.clone();
+        this.prv_cam_state.pos = this.camera.position.clone();
         
+        this.#calc_fps();
     }
     
     #update_light()
     {
-        if (this.camera.position.x == this.prv_cam_pos.x && this.camera.position.y == this.prv_cam_pos.y && this.camera.position.z == this.prv_cam_pos.z) return;
-
         let cam_rot = this.camera.rotation.clone();
         cam_rot.reorder('YXZ');      // Change the order in which rotations are applied from the default (XYZ) to XYZ which is easier for me to work with. Y will have values from -180 to 180, X will have values from -90 to 90. Don't care about Z.
         cam_rot = convert_euler_to_degrees(cam_rot);
@@ -267,6 +294,16 @@ class App
             this.#gps_marker.set_position(pos, this.devicepos.accuracy);
         }
         
+    }
+
+    #update_marker_labels()
+    {let start = Date.now();
+        for (let location of this.#locations)
+        {
+            location.update_label_position(this.camera, this.renderer);
+        }
+        let end = Date.now();
+        console.log('updating markers took ' + (end - start) + 'ms');
     }
 
 }

@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.2.1";
+const app_version = "v1.2.2";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -21,6 +21,7 @@ self.addEventListener("install", (event) => {
             "./jszip/jszip.min.js",
             "./three.module.min.js",
             "./addons/controls/OrbitControls.js",
+            "./addons/controls/MapControla.js",
             "./app.js",
             "./project.js",
             "./profiler.js",

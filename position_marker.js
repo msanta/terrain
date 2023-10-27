@@ -12,6 +12,16 @@ class PositionMarker
     mesh;
 
     /**
+     * A html element that acts as the marker's label.
+     */
+    label_el;
+
+    /**
+     * The scene that this marker is added to.
+     */
+    scene;
+
+    /**
      * 
      * @param {THREE.Scene} scene The scene to which the marker will be added.
      * @param {THREE.Vector3} position The position of the marker.
@@ -25,8 +35,61 @@ class PositionMarker
         material.opacity = 0.5;
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(position.x, position.y, position.z);
+        this.mesh.layers.enable(2);     // All marker meshes belong to layer 2.
         this.scene = scene;
         scene.add(this.mesh);
+    }
+
+
+    set_label(name)
+    {
+        let labels_container = document.getElementById('labels');       // TODO: find a way to specify the labels container
+        const elem = document.createElement('div');
+        elem.textContent = name;
+        elem.id = "_label_" + name;
+        labels_container.appendChild(elem);
+        this.label_el = elem;
+    }
+
+    update_label_position(camera, renderer)
+    {
+        let visible = false;
+
+        let tempV = new THREE.Vector3();
+        //this.mesh.updateWorldMatrix( true, false );  <-- not sure what this does. Doesn't seem to affect the outcome?
+        //this.mesh.getWorldPosition( tempV );  <-- why this rather then just mesh.position ?
+        tempV = this.mesh.position.clone();
+
+        // Only show the marker label if the marker is within 2km of the camera.
+        let limit = 2000;
+        let dist = tempV.distanceTo(camera.position);
+        if (dist < limit)
+        {
+            visible = true;
+            // get the normalized screen coordinate of that position
+            // x and y will be in the -1 to +1 range with x = -1 being
+            // on the left and y = -1 being on the bottom
+            tempV.project(camera);
+           
+            // convert the normalized position to CSS coordinates
+            const x = (tempV.x *  .5 + .5) * renderer.domElement.clientWidth;
+            const y = (tempV.y * -.5 + .5) * renderer.domElement.clientHeight;
+        
+            // move the elem to that position
+            this.label_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
+            // set the zIndex for sorting
+            this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
+            // make elements further away more transparent.
+            this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
+        }
+        if (!visible || Math.abs(tempV.z) > 1) {
+            // hide the label
+            this.label_el.style.display = 'none';
+        } else {
+            // un-hide the label
+            this.label_el.style.display = '';
+        }
+        
     }
 
     /**
@@ -65,6 +128,7 @@ class PositionMarker
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
         this.mesh = undefined;
+        if (this.label_el) this.label_el.remove();
     }
 }
 
