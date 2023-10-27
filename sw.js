@@ -21,7 +21,7 @@ self.addEventListener("install", (event) => {
             "./jszip/jszip.min.js",
             "./three.module.min.js",
             "./addons/controls/OrbitControls.js",
-            "./addons/controls/MapControla.js",
+            "./addons/controls/MapControls.js",
             "./app.js",
             "./project.js",
             "./profiler.js",
