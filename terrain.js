@@ -4,14 +4,13 @@ import { Vector3 } from './three.module.min.js';
 
 class Terrain
 {
-    #scene;
     /**
      * The ThreeJS scene object that the chunk will be added to.
      */
     scene;
 
     /**
-     * The information for this terrain chunk.
+     * The information used for generating this terrain chunk.
      */
     info;
    
@@ -77,10 +76,9 @@ class Terrain
         frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
 
         let levels = {
-            1: {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10},
-            2: {3000: 2, 6000: 4, 10000: 8}
+            1: {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10, 20000: 20},
+            2: {3000: 2, 6000: 4, 10000: 8, 20000: 20}
         }
-        //let levels = {2000: 1, 8000: 2, 20000: 4};
         let pos = camera.position;
         let inbb = [];
         let updated = [];
@@ -126,6 +124,26 @@ class Terrain
         {
             chunk.destroy();
         }
+    }
+
+    /**
+     * Get the height of the terrain at the given location.
+     * @param {integer} x The x position in the scene.
+     * @param {integer} z The z position in the scene.
+     */
+    get_height_at_location(x, z)
+    {
+        const terrain_x = x - this.info.position.x;
+        const terrain_z = Math.abs(z - this.info.position.y);
+        const res = this.info.native_resolution;
+        const rows = this.info.data_size.h;
+        const cols = this.info.data_size.w;
+        // Just get the closest height data point. This is fine, as interpolation with adjacent height points will usually not yield much better results.
+        const col = Math.round(terrain_x / res);
+        const row = Math.round(cols - (terrain_z / res) - 1);
+        const view = new DataView(this.data_buffer);
+        let val = view.getUint16((row * rows + col) * 2) / 10;
+        return val;
     }
 
 }
