@@ -21,6 +21,11 @@ class PositionMarker
      */
     scene;
 
+    is_visible;
+
+    #label_width;
+    #label_height;
+
     /**
      * 
      * @param {THREE.Scene} scene The scene to which the marker will be added.
@@ -38,6 +43,7 @@ class PositionMarker
         this.mesh.layers.enable(2);     // All marker meshes belong to layer 2.
         this.scene = scene;
         scene.add(this.mesh);
+        this.is_visible = false;
     }
 
 
@@ -49,6 +55,8 @@ class PositionMarker
         elem.id = "_label_" + name;
         labels_container.appendChild(elem);
         this.label_el = elem;
+        this.#label_width = elem.clientWidth;
+        this.#label_height = elem.clientHeight;
     }
 
     update_label_position(camera, renderer_width, renderer_height)
@@ -59,8 +67,20 @@ class PositionMarker
         //this.mesh.getWorldPosition( tempV );  <-- why this rather then just mesh.position ?
         let tempV = this.mesh.position.clone();
 
+        // For working out if the marker is in the frustrum
+        const frustum = new THREE.Frustum();
+        frustum.setFromProjectionMatrix(camera.projectionMatrix)
+        frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
+        let bb = new THREE.Box3().setFromObject(this.mesh);
+        if(!frustum.intersectsBox(bb)) 
+        {
+            this.is_visible = false;
+            this.label_el.style.opacity = 0;
+            return;
+        }
+
         // Only show the marker label if the marker is within 2km of the camera.
-        let limit = 2000;
+        let limit = 20000;
         let dist = tempV.distanceTo(camera.position);
         if (dist < limit)
         {
@@ -74,18 +94,33 @@ class PositionMarker
             const x = (tempV.x *  .5 + .5) * renderer_width;
             const y = (tempV.y * -.5 + .5) * renderer_height;
         
-            // move the elem to that position
-            this.label_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
-            // set the zIndex for sorting
-            this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
-            // make elements further away more transparent.
-            this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
+            // Is there free space to position the label?
+            if (Math.abs(tempV.z) > 1) visible = false;
+            if (visible)
+            {
+                //console.log('check label at', x - this.#label_width / 2, y + this.#label_height, this.#label_width, this.#label_height);
+                if (ScreenSpace.is_free(x - this.#label_width / 2, y + this.#label_height, this.#label_width, this.#label_height))
+                {
+                    ScreenSpace.mark_as_occupied(x - this.#label_width / 2, y + this.#label_height, this.#label_width, this.#label_height);
+
+                    // move the elem to that position
+                    this.label_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
+                    // set the zIndex for sorting
+                    this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
+                    // make elements further away more transparent.
+                    this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
+                }
+                else
+                {
+                    visible = false;
+                }
+            }
         }
         if (!visible || Math.abs(tempV.z) > 1) {
             // hide the label
             this.label_el.style.opacity = 0;
         }
-        
+        this.is_visible = visible;
     }
 
     /**
@@ -203,4 +238,56 @@ class GPSPositionMarker extends PositionMarker
 
 }
 
-export {PositionMarker, GPSPositionMarker};
+
+class ScreenSpace
+{
+    static occupied;
+    static width;
+    static height;
+
+    static reset(width, height)
+    {
+        this.width = Math.ceil(width / 10);
+        this.height = Math.ceil(height / 10);
+        this.occupied = new Uint8Array(this.width * this.height);
+    }
+
+    static is_free(posx, posy, width, height)
+    {
+        posx = Math.ceil(posx / 10);
+        posy = Math.ceil(posy / 10);
+        width = Math.ceil(width / 10);
+        height = Math.ceil(height / 10);
+        let index;
+        for (let x = posx; x < posx + width; x++)
+        {
+            for (let y = posy; y < posy + height; y++)
+            {
+                index = x + y * this.width;
+                if (this.occupied[index]) return false;
+            }
+        }
+        return true;
+    }
+
+    static mark_as_occupied(posx, posy, width, height)
+    {
+        posx = Math.ceil(posx / 10);
+        posy = Math.ceil(posy / 10);
+        width = Math.ceil(width / 10);
+        height = Math.ceil(height / 10);
+        let index;
+        for (let x = posx; x < posx + width; x++)
+        {
+            for (let y = posy; y < posy + height; y++)
+            {
+                index = x + y * this.width;
+                this.occupied[index] = 1;
+            }
+        }
+    }
+
+}
+
+
+export {PositionMarker, GPSPositionMarker, ScreenSpace};

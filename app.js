@@ -5,7 +5,7 @@ import { Project } from './project.js';
 import { Profiler } from './profiler.js';
 import { Vector3 } from './three.module.min.js';
 import { DevicePosition } from './deviceposition.js';
-import { GPSPositionMarker, PositionMarker } from './position_marker.js';
+import { GPSPositionMarker, PositionMarker, ScreenSpace } from './position_marker.js';
 import { KML } from './kml.js';
 
 /**
@@ -308,12 +308,16 @@ class App
 
     #update_marker_labels()
     {let start = Date.now();
+        ScreenSpace.reset(this.#display_width, this.#display_height);
+        let cnt = 0;
         for (let location of this.#locations)
         {
             location.update_label_position(this.camera, this.#display_width, this.#display_height);
+            //if (cnt++ > 0) break;
+            if (location.is_visible) cnt++;
         }
         let end = Date.now();
-        console.log('updating markers took ' + (end - start) + 'ms');
+        console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
     }
 
 }
