@@ -58,7 +58,7 @@ class Project
         {
             let pos = project.camera.start_pos;
             let look_at = project.camera.look_at;
-            let height = this.get_terrain_height_at_location(look_at.x, -look_at.y);
+            let height = this.get_terrain_height_at_location2(look_at.x, -look_at.y);
             if (height == -9999) height = 0;
             console.log('height at ', pos.x, pos.y, '=', height);
             window.app.camera.position.set(pos.x, height + 2000, -pos.y);
@@ -141,14 +141,14 @@ class Project
     }
 
     /**
-     * Gets the terrain height for a given x/y location.
+     * Gets the terrain height for a given x/z location. This function uses a raycaster.
      * @param {integer} x The x location in the scene.
-     * @param {integer} y The y location in the scene. Remember that y positions should be negative!
+     * @param {integer} z The z location in the scene. Remember that z positions should be negative!
      * @return {float} The height value. If there is no terrain returns -9999
      */
-    get_terrain_height_at_location(x, y)
+    get_terrain_height_at_location(x, z)
     {
-        const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 9999, y), new THREE.Vector3(0, -1, 0), 0, 10000);
+        const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 9999, z), new THREE.Vector3(0, -1, 0), 0, 10000);
         raycaster.layers.set(1);    // only test against terrain meshes
         //console.log(this.scene.children);
         const intersects = raycaster.intersectObjects(this.scene.children);
@@ -157,6 +157,25 @@ class Project
         return point.y;
     }
 
+    /**
+     * Gets thet errain height for a given x/z coordinate. This function looks at the terrain height data to work out the height.
+     * @param {integer} x The x location in the scene
+     * @param {integer} z The z location in the scene
+     * @return {float} The height value. If there is no terrain return -9999. 
+     */
+    get_terrain_height_at_location2(x, z)
+    {
+        for (let terrain of this.terrains)
+        {
+            let bottom_left = terrain.info.position;
+            let size = terrain.info.size; 
+            if (x >= bottom_left.x && x <= bottom_left.x + size.w && z <= bottom_left.y && z >= bottom_left.y - size.h)
+            {
+                return terrain.get_height_at_location(x, z);
+            }
+        }
+        return -9999;
+    }
 
 
     #load_zip_file(file)

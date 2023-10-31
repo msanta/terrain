@@ -118,7 +118,7 @@ class App
             let utm = this.project.convert_latlon_to_utm(location.lat, location.lon);
             let x = utm.easting - this.project.project_info.origin.x;
             let z = utm.northing - this.project.project_info.origin.y;
-            let y = this.project.get_terrain_height_at_location(x, -z);
+            let y = this.project.get_terrain_height_at_location2(x, -z);
             if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
             let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
             marker.set_label(location.name);
