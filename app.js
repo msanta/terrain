@@ -34,6 +34,9 @@ class App
     #gps_marker = null;
     #locations = [];
 
+    #display_width;
+    #display_height;
+
     constructor()
     {
         this.debuginfo = {
@@ -45,6 +48,8 @@ class App
         window._data.profiler = Profiler;
         this.profiler = Profiler;
         window.app = this;
+        this.#display_height = 0;
+        this.#display_width = 0;
     };
 
     initialise()
@@ -127,17 +132,22 @@ class App
     {
 
         this.renderer = new THREE.WebGLRenderer({canvas: document.getElementById('render_canvas')});
-        this.renderer.setSize( window.innerWidth, window.innerHeight );
+        this.#display_width = window.innerWidth;
+        this.#display_height = window.innerHeight;
+        this.renderer.setSize( this.#display_width, this.#display_height );
         document.body.appendChild( this.renderer.domElement );
         let self = this;
         window.addEventListener('resize', (e) => {
-            self.camera.aspect = window.innerWidth / window.innerHeight;
+            self.#display_width = window.innerWidth;
+            self.#display_height = window.innerHeight;
+            self.camera.aspect = self.#display_width / self.#display_height;
             self.camera.updateProjectionMatrix();
-            self.renderer.setSize(window.innerWidth, window.innerHeight);
+            self.renderer.setSize(self.#display_width, self.#display_height);
+            self.#update_marker_labels();
         });
 
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 15000 );
+        this.camera = new THREE.PerspectiveCamera( 45, self.#display_width / self.#display_height, 1, 15000 );
         this.controls = new MapControls( this.camera, this.renderer.domElement );
         this.controls.maxDistance = 15000;
         this.controls.minDistance = 50;
@@ -257,8 +267,8 @@ class App
         const raycaster = new THREE.Raycaster();
         raycaster.layers.set(1);    // only test against terrain meshes
 
-        pointer.x = ( e.clientX / this.renderer.domElement.width ) * 2 - 1;
-        pointer.y = - ( e.clientY / this.renderer.domElement.height ) * 2 + 1;
+        pointer.x = ( e.clientX / this.#display_width ) * 2 - 1;
+        pointer.y = - ( e.clientY / this.#display_height ) * 2 + 1;
 
         // update the picking ray with the camera and pointer position
         raycaster.setFromCamera( pointer, this.camera );
@@ -300,7 +310,7 @@ class App
     {let start = Date.now();
         for (let location of this.#locations)
         {
-            location.update_label_position(this.camera, this.renderer);
+            location.update_label_position(this.camera, this.#display_width, this.#display_height);
         }
         let end = Date.now();
         console.log('updating markers took ' + (end - start) + 'ms');

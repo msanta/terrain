@@ -51,14 +51,13 @@ class PositionMarker
         this.label_el = elem;
     }
 
-    update_label_position(camera, renderer)
+    update_label_position(camera, renderer_width, renderer_height)
     {
         let visible = false;
-
-        let tempV = new THREE.Vector3();
+        
         //this.mesh.updateWorldMatrix( true, false );  <-- not sure what this does. Doesn't seem to affect the outcome?
         //this.mesh.getWorldPosition( tempV );  <-- why this rather then just mesh.position ?
-        tempV = this.mesh.position.clone();
+        let tempV = this.mesh.position.clone();
 
         // Only show the marker label if the marker is within 2km of the camera.
         let limit = 2000;
@@ -72,8 +71,8 @@ class PositionMarker
             tempV.project(camera);
            
             // convert the normalized position to CSS coordinates
-            const x = (tempV.x *  .5 + .5) * renderer.domElement.clientWidth;
-            const y = (tempV.y * -.5 + .5) * renderer.domElement.clientHeight;
+            const x = (tempV.x *  .5 + .5) * renderer_width;
+            const y = (tempV.y * -.5 + .5) * renderer_height;
         
             // move the elem to that position
             this.label_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
@@ -84,10 +83,7 @@ class PositionMarker
         }
         if (!visible || Math.abs(tempV.z) > 1) {
             // hide the label
-            this.label_el.style.display = 'none';
-        } else {
-            // un-hide the label
-            this.label_el.style.display = '';
+            this.label_el.style.opacity = 0;
         }
         
     }

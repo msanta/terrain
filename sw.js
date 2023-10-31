@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.2.2";
+const app_version = "v1.2.3";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -15,13 +15,19 @@ self.addEventListener("install", (event) => {
             // css
             "./bootstrap/css/bootstrap.min.css",
             "./app.css",
-            // scripts
+            // scripts - dependencies
             "./bootstrap/js/bootstrap.bundle.min.js",
             "./jquery/jquery-3.7.0.min.js",
             "./jszip/jszip.min.js",
             "./three.module.min.js",
             "./addons/controls/OrbitControls.js",
             "./addons/controls/MapControls.js",
+            "./geodesy/latlon-ellipsoidal-datum.js",
+            "./geodesy/latlon-ellipsoidal.js",
+            "./geodesy/dms.js",
+            "./geodesy/vector3d.js",
+            "./geodesy/utm.js",
+            // scripts - app
             "./app.js",
             "./project.js",
             "./profiler.js",
@@ -29,14 +35,10 @@ self.addEventListener("install", (event) => {
             "./terrain.js",
             "./terrain_chunk.js",
             "./position_marker.js",
-            "./geodesy/latlon-ellipsoidal-datum.js",
-            "./geodesy/latlon-ellipsoidal.js",
-            "./geodesy/dms.js",
-            "./geodesy/vector3d.js",
-            "./geodesy/utm.js",
             "./kml.js"
         ]),
     );
+    console.log('installed');
 });
 
 
@@ -67,6 +69,6 @@ const deleteOldCaches = async () => {
 };
 
 self.addEventListener("activate", (event) => {
-    console.log('activate?');
+    console.log('activate');
     event.waitUntil(deleteOldCaches());
 });
