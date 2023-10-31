@@ -308,11 +308,25 @@ class App
 
     #update_marker_labels()
     {let start = Date.now();
+        let self = this;
         ScreenSpace.reset(this.#display_width, this.#display_height);
+        // For working out if the marker is in the frustrum
+        const frustum = new THREE.Frustum();
+        frustum.setFromProjectionMatrix(this.camera.projectionMatrix)
+        frustum.planes.forEach(function(plane) { plane.applyMatrix4(self.camera.matrixWorld) })
         let cnt = 0;
         for (let location of this.#locations)
         {
-            location.update_label_position(this.camera, this.#display_width, this.#display_height);
+            let bb = new THREE.Box3().setFromObject(location.mesh);
+            if(frustum.intersectsBox(bb)) 
+            {
+                location.update_label_position(this.camera, this.#display_width, this.#display_height);
+            }
+            else
+            {
+                location.is_visible = false;
+                location.label_el.style.opacity = 0;
+            }
             //if (cnt++ > 0) break;
             if (location.is_visible) cnt++;
         }

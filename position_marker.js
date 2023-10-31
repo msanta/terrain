@@ -25,6 +25,7 @@ class PositionMarker
 
     #label_width;
     #label_height;
+    #label_state_change;
 
     /**
      * 
@@ -44,6 +45,7 @@ class PositionMarker
         this.scene = scene;
         scene.add(this.mesh);
         this.is_visible = false;
+        this.#label_state_change = 0;
     }
 
 
@@ -66,18 +68,6 @@ class PositionMarker
         //this.mesh.updateWorldMatrix( true, false );  <-- not sure what this does. Doesn't seem to affect the outcome?
         //this.mesh.getWorldPosition( tempV );  <-- why this rather then just mesh.position ?
         let tempV = this.mesh.position.clone();
-
-        // For working out if the marker is in the frustrum
-        const frustum = new THREE.Frustum();
-        frustum.setFromProjectionMatrix(camera.projectionMatrix)
-        frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
-        let bb = new THREE.Box3().setFromObject(this.mesh);
-        if(!frustum.intersectsBox(bb)) 
-        {
-            this.is_visible = false;
-            this.label_el.style.opacity = 0;
-            return;
-        }
 
         // Only show the marker label if the marker is within 2km of the camera.
         let limit = 20000;
@@ -108,7 +98,7 @@ class PositionMarker
                     // set the zIndex for sorting
                     this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
                     // make elements further away more transparent.
-                    this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
+                    //this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
                 }
                 else
                 {
@@ -116,9 +106,25 @@ class PositionMarker
                 }
             }
         }
-        if (!visible || Math.abs(tempV.z) > 1) {
-            // hide the label
-            this.label_el.style.opacity = 0;
+        if (!visible || Math.abs(tempV.z) > 1)
+        {
+            // if (this.#label_state_change > -10) this.#label_state_change--;
+            // if (this.#label_state_change == -10)
+            // {
+                // hide the label
+                this.label_el.style.opacity = 0;
+                this.label_el.className = 'fadeout';
+                this.#label_state_change = 0;
+            // }
+        }
+        if (visible)
+        {
+            if (this.#label_state_change < 5) this.#label_state_change++;
+            if (this.#label_state_change == 5)
+            {
+                this.label_el.style.opacity = 1;
+                this.label_el.className = 'fadein';
+            }
         }
         this.is_visible = visible;
     }
