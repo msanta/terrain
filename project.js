@@ -120,7 +120,7 @@ class Project
     {
         let x = easting - this.project_info.origin.x;
         let z = -(northing - this.project_info.origin.y);
-        let y = this.get_terrain_height_at_location(x, z);
+        let y = this.get_terrain_height_at_location2(x, z);
         return new THREE.Vector3(x, y, z);
     }
 
