@@ -20,6 +20,8 @@ class App
     light;
     devicepos;
 
+    /** Indicates if a render is in progress */
+    #is_rendering;
     debuginfo = {};
     prv_cam_state;
     prv_control_state;
@@ -49,6 +51,7 @@ class App
 
     constructor()
     {
+        this.is_rendering = false;
         this.debuginfo = {
             triangle_cnt: 0,
             fps: {start: Date.now(), cnt: 0}
@@ -68,7 +71,7 @@ class App
     initialise()
     {
         this.#setup_renderer();
-        this.#render_loop();
+        this.#request_render();
         let self = this;
         this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
         this.#gps_marker = new GPSPositionMarker(this.scene, new THREE.Vector3(), document.getElementById('gps_loc'));
@@ -119,6 +122,8 @@ class App
             this.#locations.push(marker);
             //console.log(location.name, x,y,-z);
         }
+        this.#update_marker_labels();
+        this.#request_render();
     }
 
 
@@ -138,6 +143,7 @@ class App
             self.camera.updateProjectionMatrix();
             self.renderer.setSize(self.#display_width, self.#display_height);
             self.#update_marker_labels();
+            self.#request_render();
         });
 
         this.scene = new THREE.Scene();
@@ -147,7 +153,7 @@ class App
         this.controls.minDistance = 50;
         this.controls.addEventListener('start', () => self.#controls_input('start'));
         this.controls.addEventListener('end', () => self.#controls_input('end'));
-        this.controls.addEventListener('change', () => {self.#camera_position_changed = true;});
+        this.controls.addEventListener('change', () => {self.#camera_position_changed = true; self.#request_render()});
         //this.controls.zoomToCursor = true;
 
         const axesHelper = new THREE.AxesHelper( 200 );
@@ -166,14 +172,26 @@ class App
         // this.debuginfo.lighthelper = helper;
     }
 
-    #render_loop()
+    #request_render()
+    {
+        if (!this.#is_rendering)
+        {
+            this.#is_rendering = true;
+            let self = this;
+            requestAnimationFrame( () => self.#render() );
+        }
+    }
+
+    #render()
     {
         let self = this;
         let view_change = false;
+
+        this.#is_rendering = false;
         
-        requestAnimationFrame( () => {self.#render_loop() });
+        //requestAnimationFrame( () => {self.#render_loop() });
         // required if controls.enableDamping or controls.autoRotate are set to true
-        this.controls.update();
+        //this.controls.update();
 
         if (!this.prv_cam_state.rot.equals(this.camera.rotation) || !this.prv_cam_state.pos.equals(this.camera.position)) view_change = true;
     
@@ -215,7 +233,7 @@ class App
         this.prv_cam_state.rot = this.camera.rotation.clone();
         this.prv_cam_state.pos = this.camera.position.clone();
         this.prv_control_state.target = this.controls.target.clone();
-        
+        this.controls.update();
         this.#calc_fps();
     }
 
@@ -261,6 +279,7 @@ class App
         html += 'create mesh: ' + (totals['create mesh and add to scene'] ?? '') + '<br/>';
         html += 'set vertex: ' + (totals['set vertex values'] ?? '') + '</br>';
         el.innerHTML = html;
+        this.#request_render();
     }
 
     #calc_fps()
@@ -363,6 +382,7 @@ class App
             console.log(this.devicepos, utm, pos);
             if (this.#follow_gps) this.#focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
+            this.#request_render();
         }
         let el = document.getElementById('geolocation');
         if (el)
@@ -505,6 +525,7 @@ class App
             //console.log(this.devicepos, utm, pos);
             if (this.#follow_gps) this.#focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
+            this.#request_render();
         }
         let el = document.getElementById('geolocation');
         if (el)
