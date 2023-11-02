@@ -3,8 +3,6 @@
  */
 class DevicePosition
 {
-    el_debug = null;
-
     /**
      * The current latitude.
      */
@@ -40,26 +38,53 @@ class DevicePosition
      */
     speed = -1;
 
+    /**
+     * The geo watch position ID.
+     */
     #geo_watch_id = null;
 
     /**
      * Flag indicating if position is being watched.
      */
-    geo_watch_enabled = false;
+    #geo_watch_enabled = false;
+
+    /**
+     * State of the GPS. Can either be starting, receiving or off.
+     */
+    state = 'off';
+
+    /**
+     * A function to call when geolocation is initialised.
+     */
+    on_init = undefined;
 
     /**
      * A function to call on position update.
      */
-    #on_update = undefined;
+    on_update = undefined;
 
     /**
-     * @param {Function} on_update The function to call on a position update.
-     * @param {HTMLElement} debug_element Html for displaying debugging info.
+     * A function to call when geolocation is stopped.
      */
-    constructor(on_update, debug_element = undefined)
+    on_stop = undefined;
+
+    /**
+     * A function to call on error.
+     */
+    on_error = undefined;
+
+    /**
+     * @param {Function} on_init The function to call when geolocation is initalised.
+     * @param {Function} on_update The function to call on a position update.
+     * @param {Function} on_stop The function to call when geolocation is stopped.
+     * @param {Function} on_error The function to call on error.
+     */
+    constructor(on_init = undefined, on_update = undefined, on_stop = undefined, on_error = undefined)
     {
-        this.#on_update = on_update;
-        this.el_debug = debug_element;
+        this.on_init = on_init;
+        this.on_update = on_update;
+        this.on_stop = on_stop;
+        this.on_error = on_error;
     }
 
     /**
@@ -68,50 +93,49 @@ class DevicePosition
     init_geolocation()
     {
         if(!navigator.geolocation) {
-            this.#debug_to_el('Geolocation is not supported by your browser');
+            console.error('Geolocation is not supported by your browser');
             alert('Goelocation is not supported by your browser');
+            this.state = 'off'
         }
         else
         {
-            this.#debug_to_el('Locating...');
+            // this.#debug_to_el('Locating...');
             let self = this;
+            this.state = 'starting';
             this.#geo_watch_id = navigator.geolocation.watchPosition(
                 (position) => self.#loc_success(position),
                 (error) => self.#loc_error(error),
                 {enableHighAccuracy: true}
             );
-            this.geo_watch_enabled = true;
+            if (this.on_init) this.on_init(this);
+            this.#geo_watch_enabled = true;
         }
     }
     
     #loc_success(position)
     {
-        if(this.geo_watch_enabled === false)
+        if(this.#geo_watch_enabled === false)
         {
             this.stop_geolocation();
             return;
         }
-        const latitude = this.lat = position.coords.latitude;
-        const longitude = this.lon = position.coords.longitude;
-        const accuracy = this.accuracy = this.#round_to(position.coords.accuracy, 1);
-        const altitude = this.altitude = this.#round_to(position.coords.altitude, 1);
-        const altitude_accuracy = this.altitude_accuracy = this.#round_to(position.coords.altitudeAccuracy, 1);
-        const heading = this.heading = this.#round_to(position.coords.heading, 1);
-        const speed = this.speed = this.#round_to(position.coords.speed, 3);
-    
-        let output = `Latitude: ${latitude}, Longitude: ${longitude}, Accuracy: ${accuracy} m` + '<br/>';
-        output += `Altitude: ${altitude} m, Altitude Accuracy: ${altitude_accuracy} m` + '<br/>';
-        output += `Heading: ${heading}, Speed: ${speed} m/s`;
+        this.state = 'receiving';
+        this.lat = position.coords.latitude;
+        this.lon = position.coords.longitude;
+        this.accuracy = position.coords.accuracy;
+        this.altitude = position.coords.altitude;
+        this.altitude_accuracy = position.coords.altitude_accuracy;
+        this.heading = position.coords.heading;
+        this.speed = position.coords.speed;
         
-        this.#debug_to_el(output);
-        this.#on_update();
-        //console.log(position, output);
+        if (this.on_update) this.on_update(this);
     }
     
     #loc_error(error)
     {
-        this.#debug_to_el('Unable to retrieve your location: ' + error.message);
-        alert('Unable to retrieve your location: ' + error.message);
+        if (this.on_error) this.on_error(error);
+        console.error(error);
+        this.stop_geolocation();
     }
     
     /**
@@ -121,29 +145,11 @@ class DevicePosition
     {
         // Note: using a flag to indicate that watching for geolocation should be stopped because clearing the watch does not always work (probably a race condition)
         navigator.geolocation.clearWatch(this.#geo_watch_id);
-        this.#debug_to_el('stopped');
-        this.geo_watch_enabled = false;
-        console.log('stopped geolocation');
+        this.#geo_watch_enabled = false;
+        this.state = 'off';
+        if (this.on_stop) this.on_stop(this);
     }
 
-    
-    // Takes a float and rounds it to the specified precision (allowed values are 0 to 4).
-    #round_to(num, precision = 0)
-    {
-        if(num == null || num === undefined) return num;
-        if(precision == 0) return Math.round(num);
-        if(precision == 1) return Math.round(num * 10) / 10;
-        if(precision == 2) return Math.round(num * 100) / 100;
-        if(precision == 3) return Math.round(num * 1000) / 1000;
-        if(precision == 4) return Math.round(num * 10000) / 10000;
-        console.error('Invalid decimals value of `' + decimals + '` passed to round_to() function')
-        throw "Invalid decimal precision value for 'round_to()' function";
-    }
-
-    #debug_to_el(html)
-    {
-        if (this.el_debug) this.el_debug.innerHTML = html;
-    }
 }
 
 export {DevicePosition};

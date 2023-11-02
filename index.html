@@ -39,41 +39,36 @@
             top: 10px;
             width: 100%;
             text-align: center;
-            z-index: 100;
-            display:block;
-            user-select: none;">FPS</div>
+            display:block">FPS</div>
 
             <div id="profiler" style="position: absolute;
             top: 30px;
             width: 100%;
             text-align: left;
-            z-index: 100;
-            display:block;
-            user-select: none;">Profiler Info</div>
+            display:block">Profiler Info</div>
 
             <div id="geolocation" style="position: absolute;
             bottom: 0px;
             width: 100%;
             text-align: left;
-            z-index: 100;
-            display:block;
-            user-select: none;">Location Info</div>
+            display:block;">Location Info</div>
 
             <div id="triangles" style="position: absolute;
             top: 10px;
             width: 100%;
             text-align: right;
-            z-index: 100;
-            display:block;
-            user-select: none;">TRIANGLES</div>
+            display:block;">TRIANGLES</div>
 
             <div id="loadtime" style="position: absolute;
             top: 30px;
             width: 100%;
             text-align: right;
-            z-index: 100;
-            display:block;
-            user-select: none;">Load time</div>
+            display:block;">Load time</div>
+        </div>
+
+        <div id="gui">
+            <div class="compass"></div>
+            <div id="gps" class="gps_off"></div>
         </div>
 
         <div class="offcanvas offcanvas-start" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="menu"
@@ -92,11 +87,6 @@
                     <input type="file" accept=".kml,.kmz" id="filebrowser2" style="display:none"/>
                     <button type="button" id="filebrowserbtn2" class="btn btn-primary">Open KML</button>
                 </div>
-                <hr />
-                <div>
-                    <button type="button" id="gps_toggle_btn" class="btn btn-secondary">Turn on GPS</button>
-                </div>
-                <hr />
                 <div style="position: absolute; bottom: 10px">
                     <button type="button" id="debug_toggle_btn" class="btn btn-info">Show debug info</button>
                 </div>
@@ -123,6 +113,13 @@
                 } else if (registration.active) {
                 console.log('Service worker active');
                 }
+                // registration.addEventListener('updatefound', (e) => {
+                //     console.info("update found");
+                //     if (confirm("A new version of this application was found. Please close the page and open it to use the newest version. (NOTE: Reloading the page will not be enough. It has to be closed and opened again.)"))
+                //     {
+                //         location.reload();
+                //     }
+                // })
             } catch (error) {
                 console.error(`Registration failed with ${error}`);
             }
@@ -147,9 +144,9 @@
         $('#filebrowser').on('change', file_selected);
         $('#filebrowserbtn2').on('click', show_file_browser2);
         $('#filebrowser2').on('change', file_selected2);
-        $('#gps_toggle_btn').on('click', toggle_gps);
         $('#debug_toggle_btn').on('click', toggle_debug);
         $('#label1').on('click', () => console.log('clicked on label1'));
+        $('#gps').on('click', () => app.switch_gps_state());
 
         function show_file_browser()
         {
@@ -181,22 +178,6 @@
             fileurl2 = URL.createObjectURL(file);
             await app.load_kml(fileurl2);
             $('#close_menu_btn').click();
-        }
-
-        function toggle_gps()
-        {
-            if (!gps_status)
-            {
-                app.start_geolocation();
-                gps_status = true;
-                $(this).text('Turn off GPS');
-            }
-            else
-            {
-                app.stop_geolocation();
-                gps_status = false;
-                $(this).text('Turn on GPS');
-            }
         }
 
         function toggle_debug()

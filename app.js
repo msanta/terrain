@@ -22,6 +22,8 @@ class App
 
     debuginfo = {};
     prv_cam_state;
+    prv_control_state;
+    #user_is_updating_controls = false;
     /**
      * @type {Project} The project instance for this app.
      */
@@ -37,6 +39,13 @@ class App
     #display_width;
     #display_height;
 
+    /**
+     * Indicates if the camera should follow the GPS position.
+     */
+    #follow_gps = false;
+
+    _sim_gps_update = null;
+
     constructor()
     {
         this.debuginfo = {
@@ -44,12 +53,15 @@ class App
             fps: {start: Date.now(), cnt: 0}
         };
         this.prv_cam_state = {rot: new THREE.Vector3(), pos: new THREE.Vector3()};
+        this.prv_control_state = {target: new THREE.Vector3()};
         window._data = {};
         window._data.profiler = Profiler;
         this.profiler = Profiler;
         window.app = this;
         this.#display_height = 0;
         this.#display_width = 0;
+        let self = this;
+        this.devicepos = new DevicePosition(() => self.#on_gps_init(), () => self.#on_gps_update(), () => self.#on_gps_stopped(), (error) => self.#on_gps_error(error));
     };
 
     initialise()
@@ -58,7 +70,6 @@ class App
         this.#render_loop();
         let self = this;
         this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
-        this.devicepos = new DevicePosition(() => self.#on_position_update(), document.getElementById('geolocation'));
         this.#gps_marker = new GPSPositionMarker(this.scene);
         this.#gps_marker.visible(false);
     }
@@ -74,24 +85,6 @@ class App
     {
         if (this.project) this.project.unload_project();
         this.project = null;
-    }
-
-    /**
-     * Tell the app to turn on GPS
-     */
-    start_geolocation()
-    {
-        this.devicepos.init_geolocation();
-        this.#gps_marker.visible(true);
-    }
-
-    /**
-     * Tell the app to turn off GPS
-     */
-    stop_geolocation()
-    {
-        this.devicepos.stop_geolocation();
-        this.#gps_marker.visible(false);
     }
 
     async load_kml(file)
@@ -151,7 +144,9 @@ class App
         this.controls = new MapControls( this.camera, this.renderer.domElement );
         this.controls.maxDistance = 15000;
         this.controls.minDistance = 50;
-        this.controls.zoomToCursor = true;
+        this.controls.addEventListener('start', () => self.#controls_input('start'));
+        this.controls.addEventListener('end', () => self.#controls_input('end'));
+        //this.controls.zoomToCursor = true;
 
         const axesHelper = new THREE.AxesHelper( 200 );
         this.scene.add( axesHelper );
@@ -192,6 +187,11 @@ class App
         {
             this.#update_marker_labels();
             this.#update_light();
+            this.#update_compass();
+            if (this.#user_is_updating_controls && !this.prv_control_state.target.equals(this.controls.target))
+            {
+                if (this.#follow_gps) this.unfollow_gps();
+            }
 
             if (this.project)
             {
@@ -205,8 +205,19 @@ class App
     
         this.prv_cam_state.rot = this.camera.rotation.clone();
         this.prv_cam_state.pos = this.camera.position.clone();
+        this.prv_control_state.target = this.controls.target.clone();
         
         this.#calc_fps();
+    }
+
+    /**
+     * Controls received user input.
+     */
+    #controls_input(state)
+    {
+        if (state == 'start') this.#user_is_updating_controls = true;
+        if (state == 'end') this.#user_is_updating_controls = false;
+        console.log('changed', state);
     }
     
     #update_light()
@@ -289,12 +300,52 @@ class App
 
         this.controls.target = point;
         this.controls.update();
+
+        if (this.#follow_gps) this.unfollow_gps();
+    }
+
+    /**
+     * Change the GPS state when tapping the GPS icon. Can switch between on -> follow -> off.
+     */
+    switch_gps_state()
+    {
+        if (this.devicepos.state == 'off')
+        {
+            this.devicepos.init_geolocation();
+        }
+        else
+        {
+            // Follow GPS if not already following and the device has started to receive position information. Else stop the GPS.
+            if (!this.#follow_gps && this.devicepos.state == 'receiving')
+            {
+                this.follow_gps();
+            }
+            else
+            {
+                this.devicepos.stop_geolocation();
+                this.#follow_gps = false;
+            }
+        }
+    }
+
+    /**
+     * Called when GPS locating is started.
+     */
+    #on_gps_init()
+    {
+        this.#gps_marker.visible(true);
+        let gps_el = $('#gps');
+        gps_el.removeClass('gps_off gps_follow');
+        gps_el.addClass('gps_on');
+        let el = document.getElementById('geolocation');
+        if (el) el.innerHTML = 'Starting GPS';
+        console.log('start geolocation');
     }
 
     /**
      * Called when GPS location is updated.
      */
-    #on_position_update()
+    #on_gps_update()
     {
         if (this.project)
         {
@@ -302,9 +353,68 @@ class App
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             console.log(this.devicepos, utm, pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy);
+            if (this.#follow_gps) this.#focus_camera_on_location(pos);
         }
-        
+        let el = document.getElementById('geolocation');
+        if (el)
+        {
+            const altitude = this.devicepos.altitude ? this.devicepos.altitude.toFixed(1) + 'm' : 'n/a';
+            const altitude_accuracy = this.devicepos.altitude_accuracy ? this.devicepos.altitude_accuracy.toFixed(1) + 'm': 'n/a';
+            const heading = this.devicepos.heading ? this.devicepos.heading.toFixed(1) : 'n/a';
+            const speed = this.devicepos.speed ? this.debuginfo.speed.toFixed(1) + 'm/s' : 'n/a';
+            let html = `Latitude: ${this.devicepos.lat}, Longitude: ${this.devicepos.lon}, Accuracy: ${this.devicepos.accuracy.toFixed(1)} m` + '<br/>';
+            html += `Altitude: ${altitude}, Altitude Accuracy: ${altitude_accuracy}` + '<br/>';
+            html += `Heading: ${heading}, Speed: ${speed}`;
+            el.innerHTML = html;
+        }
     }
+
+    /**
+     * Called when GPS locating is stopped.
+     */
+    #on_gps_stopped()
+    {
+        this.#gps_marker.visible(false);
+        let gps_el = $('#gps');
+        gps_el.removeClass('gps_on gps_follow');
+        gps_el.addClass('gps_off');
+        let el = document.getElementById('geolocation');
+        if (el) el.innerHTML = 'GPS stopped';
+        console.log('stopped geolocation');
+    }
+    
+    /**
+     * Called on GPS locating error.
+     * @param {object} error 
+     */
+    #on_gps_error(error, obj)
+    {
+        let el = document.getElementById('geolocation');
+        if (el) el.innerHTML = 'Unable to retrieve your location: ' + error.message;
+        alert('Unable to retrieve your location: ' + error.message);
+    }
+
+    /**
+     * Tell the camera to follow the GPS position marker.
+     */
+    follow_gps()
+    {
+        console.log('follow GPS marker');
+        this.#follow_gps = true;
+        let gps_el = $('#gps');
+        gps_el.removeClass('gps_on gps_off');
+        gps_el.addClass('gps_follow');
+    }
+
+    unfollow_gps()
+    {
+        console.log('unfollow GPS marker');
+        this.#follow_gps = false;
+        let gps_el = $('#gps');
+        gps_el.removeClass('gps_off gps_follow');
+        gps_el.addClass('gps_on');
+    }
+
 
     #update_marker_labels()
     {let start = Date.now();
@@ -332,6 +442,74 @@ class App
         }
         let end = Date.now();
         console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
+    }
+
+    #update_compass()
+    {
+        let cam_rot = this.camera.rotation.clone();
+        cam_rot.reorder('YXZ');      // Change the order in which rotations are applied from the default (XYZ) to XYZ which is easier for me to work with. Y will have values from -180 to 180.
+        let y = 360 + cam_rot.y * 180 / Math.PI
+        if (y > 360) y -= 360;
+        console.log(y);
+        $('.compass').get(0).style.transform = `rotate(${y}deg)`;
+    }
+
+    /**
+     * Focuses the camera onto the given location.
+     * @param {THREE.Vector3} location 
+     */
+    #focus_camera_on_location(location)
+    {
+        // apply current distance difference to new target
+        let x = location.x + this.camera.position.x - this.controls.target.x;
+        let y = location.y + this.camera.position.y - this.controls.target.y;
+        let z = location.z + this.camera.position.z - this.controls.target.z;
+
+        this.camera.position.setX(x);
+        this.camera.position.setZ(z);
+        this.camera.position.setY(y);
+
+        this.controls.target = location;
+        this.controls.update();
+
+        this.prv_control_state.target = location;
+    }
+
+    // For testing with a moving gps position
+    simulate_gps_update()
+    {
+        this.devicepos.lat += 0.000001;
+        this.devicepos.lon += 0.000001;
+        let lat = this.devicepos.lat
+        let lon = this.devicepos.lon;
+        if (this.project)
+        {
+            let utm = this.project.convert_latlon_to_utm(lat, lon);
+            let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
+            if (pos.y == -9999) pos.y = 0;
+            //console.log(this.devicepos, utm, pos);
+            this.#gps_marker.set_position(pos, this.devicepos.accuracy);
+            if (this.#follow_gps) this.#focus_camera_on_location(pos);
+        }
+        let el = document.getElementById('geolocation');
+        if (el)
+        {
+            const altitude = this.devicepos.altitude ? this.devicepos.altitude.toFixed(1) + 'm' : 'n/a';
+            const altitude_accuracy = this.devicepos.altitude_accuracy ? this.devicepos.altitude_accuracy.toFixed(1) + 'm': 'n/a';
+            const heading = this.devicepos.heading ? this.devicepos.heading.toFixed(1) : 'n/a';
+            const speed = this.devicepos.speed ? this.debuginfo.speed.toFixed(1) + 'm/s' : 'n/a';
+            let html = `Latitude: ${lat}, Longitude: ${lon}, Accuracy: ${this.devicepos.accuracy.toFixed(1)} m` + '<br/>';
+            html += `Altitude: ${altitude}, Altitude Accuracy: ${altitude_accuracy}` + '<br/>';
+            html += `Heading: ${heading}, Speed: ${speed}`;
+            el.innerHTML = html;
+        }
+        let self = this;
+        this._sim_gps_update = setTimeout(() => self.simulate_gps_update(), 150);
+    }
+
+    stop_simulate_gps_update()
+    {
+        clearTimeout(this._sim_gps_update);
     }
 
 }

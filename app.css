@@ -85,3 +85,37 @@ body {
     animation-duration: 0.1s;
     animation-name: fadeout;
 }
+
+.compass {
+    background-image: url("./images/compass.png");
+    background-size: 40px;
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    bottom: 80px;
+    right: 10px;
+    display: inline-block;
+    pointer-events: none;
+}
+
+#gps {
+    background-size: 40px;
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    bottom: 30px;
+    right: 10px;
+    display: inline-block;
+}
+
+.gps_off {
+    background-image: url("./images/gps_off.png");
+}
+
+.gps_on {
+    background-image: url("./images/gps_on.png");
+}
+
+.gps_follow {
+    background-image: url("./images/gps_follow.png");
+}
