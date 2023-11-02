@@ -455,11 +455,12 @@ class App
     }
 
     /**
-     * Focuses the camera onto the given location.
+     * Focuses the camera onto the given location. This only works for locations within the bounds of the current project.
      * @param {THREE.Vector3} location 
      */
     #focus_camera_on_location(location)
     {
+        if (!this.project.is_location_in_bounds(location)) return;
         // apply current distance difference to new target
         let x = location.x + this.camera.position.x - this.controls.target.x;
         let y = location.y + this.camera.position.y - this.controls.target.y;

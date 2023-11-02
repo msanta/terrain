@@ -177,6 +177,26 @@ class Project
         return -9999;
     }
 
+    /**
+     * Checks if the location is in the project's bounds. The bounds are the terrain tiles plus a 2km buffer.
+     * @param {THREE.Vector3} location 
+     */
+    is_location_in_bounds(location)
+    {
+        const buffer = 2000;
+        let bottom_left = {x: 100000, z: -100000};
+        let top_right = {x: -100000, z: 100000};
+        for (let terrain of this.terrains)
+        {
+            if (terrain.info.position.x < bottom_left.x) bottom_left.x = terrain.info.position.x;
+            if (terrain.info.position.y > bottom_left.z) bottom_left.z = terrain.info.position.y;
+            if (terrain.info.position.x + terrain.info.size.w > top_right.x) top_right.x = terrain.info.position.x + terrain.info.size.w;
+            if (terrain.info.position.y - terrain.info.size.h < top_right.z) top_right.z = terrain.info.position.y - terrain.info.size.h;
+        }
+        //console.log(bottom_left, top_right);
+        return !(location.x < bottom_left.x - buffer || location.x > top_right.x + buffer || location.z > bottom_left.z + buffer || location.z < top_right.z - buffer);
+    }
+
 
     #load_zip_file(file)
     {
