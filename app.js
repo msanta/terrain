@@ -118,7 +118,7 @@ class App
             let y = this.project.get_terrain_height_at_location2(x, -z);
             if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
             let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
-            marker.set_label(location.name);
+            if (location.name !== '') marker.set_label(location.name);
             this.#locations.push(marker);
             //console.log(location.name, x,y,-z);
         }
@@ -466,7 +466,7 @@ class App
             {
                 location.update_label_position(this.camera, this.#display_width, this.#display_height);
             }
-            else
+            else if (location.label_el)
             {
                 location.is_visible = false;
                 location.label_el.style.opacity = 0;

@@ -63,6 +63,7 @@ class PositionMarker
 
     update_label_position(camera, renderer_width, renderer_height)
     {
+        if (!this.label_el) return;     // no label
         let visible = false;
         
         //this.mesh.updateWorldMatrix( true, false );  <-- not sure what this does. Doesn't seem to affect the outcome?

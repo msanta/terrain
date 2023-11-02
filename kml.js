@@ -26,7 +26,10 @@ class KML
                 for (let placemark of placemarks)
                 {
                     let name = $(placemark).find('name').text();
-                    let coords = $(placemark).find('coordinates').text().split(',');
+                    let coords = $(placemark).find('coordinates').text();
+                    // Placemarks can represent tracks which don't have a coordinates node. Skip them.
+                    if (coords == '') continue;
+                    coords = coords.split(',');
                     locations.push({
                         name: name,
                         lon: coords[0],
