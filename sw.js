@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.2.6";
+const app_version = "v1.2.7";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -20,6 +20,7 @@ self.addEventListener("install", (event) => {
             "./images/gps_follow.png",
             "./images/gps_on.png",
             "./images/gps_off.png",
+            "./images/gps_location.png",
             // scripts - dependencies
             "./bootstrap/js/bootstrap.bundle.min.js",
             "./jquery/jquery-3.7.0.min.js",

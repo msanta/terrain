@@ -70,7 +70,7 @@ class App
         this.#render_loop();
         let self = this;
         this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
-        this.#gps_marker = new GPSPositionMarker(this.scene);
+        this.#gps_marker = new GPSPositionMarker(this.scene, new THREE.Vector3(), document.getElementById('gps_loc'));
         this.#gps_marker.visible(false);
     }
 
@@ -192,6 +192,13 @@ class App
             {
                 if (this.#follow_gps) this.unfollow_gps();
             }
+            if (this.#user_is_updating_controls && this.devicepos.state == 'receiving')
+            {
+                // forces the marker position to be updated when the user moves the camera.
+                let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
+                let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
+                this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
+            }
 
             if (this.project)
             {
@@ -217,7 +224,7 @@ class App
     {
         if (state == 'start') this.#user_is_updating_controls = true;
         if (state == 'end') this.#user_is_updating_controls = false;
-        console.log('changed', state);
+        //console.log('changed', state);
     }
     
     #update_light()
@@ -352,8 +359,8 @@ class App
             let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             console.log(this.devicepos, utm, pos);
-            this.#gps_marker.set_position(pos, this.devicepos.accuracy);
             if (this.#follow_gps) this.#focus_camera_on_location(pos);
+            this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
         }
         let el = document.getElementById('geolocation');
         if (el)
@@ -401,6 +408,11 @@ class App
     {
         console.log('follow GPS marker');
         this.#follow_gps = true;
+        let old_dist = this.controls.maxDistance;
+        this.controls.maxDistance = 500;  // force the camera close to the gps position.
+        this.#focus_camera_on_location(this.#gps_marker.position);
+        this.controls.update();
+        this.controls.maxDistance = old_dist;
         let gps_el = $('#gps');
         gps_el.removeClass('gps_on gps_off');
         gps_el.addClass('gps_follow');
@@ -441,7 +453,7 @@ class App
             if (location.is_visible) cnt++;
         }
         let end = Date.now();
-        console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
+        //console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
     }
 
     #update_compass()
@@ -450,7 +462,7 @@ class App
         cam_rot.reorder('YXZ');      // Change the order in which rotations are applied from the default (XYZ) to XYZ which is easier for me to work with. Y will have values from -180 to 180.
         let y = 360 + cam_rot.y * 180 / Math.PI
         if (y > 360) y -= 360;
-        console.log(y);
+        //console.log(y);
         $('.compass').get(0).style.transform = `rotate(${y}deg)`;
     }
 
@@ -489,8 +501,8 @@ class App
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             if (pos.y == -9999) pos.y = 0;
             //console.log(this.devicepos, utm, pos);
-            this.#gps_marker.set_position(pos, this.devicepos.accuracy);
             if (this.#follow_gps) this.#focus_camera_on_location(pos);
+            this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
         }
         let el = document.getElementById('geolocation');
         if (el)

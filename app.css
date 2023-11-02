@@ -119,3 +119,12 @@ body {
 .gps_follow {
     background-image: url("./images/gps_follow.png");
 }
+
+#gps_loc {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background-size: 32px;
+    background-image: url("./images/gps_location.png");
+    opacity: 1;
+}

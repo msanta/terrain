@@ -170,9 +170,9 @@ class PositionMarker
 }
 
 /**
- * Represents a sphere to show position and a cylinder around the sphere to show accuracy of the position.
+ * Represents a disc to show position and a cylinder around the disc to show accuracy of the position.
  */
-class GPSPositionMarker extends PositionMarker
+class GPSPositionMarker
 {
     /**
      * Mesh for displaying the accuracy
@@ -180,15 +180,23 @@ class GPSPositionMarker extends PositionMarker
     accuracy_mesh;
 
     /**
+     * The HTML element to use for the marker position.
+     */
+    #disc_el;
+
+    /**
+     * The position of the marker.
+     */
+    position;
+
+    /**
      * 
      * @param {THREE.Scene} scene The scene to which the marker will be added.
      * @param {THREE.Vector3} position The position of the marker.
-     * @param {float} radius The radius of the position sphere.
+     * @param {HTMLElement} disc_el The HTML element to use for the marker position.
      */
-    constructor(scene, position = new THREE.Vector3(), radius = 1)
+    constructor(scene, position = new THREE.Vector3(), disc_el)
     {
-        super(scene, position, radius);
-
         const geometry = new THREE.CylinderGeometry(0.5, 0.5, 20, 20, 1, true);     // Diameter of 1.
         const material = new THREE.MeshBasicMaterial({color: 0xffff00});
         material.transparent = true;
@@ -198,17 +206,19 @@ class GPSPositionMarker extends PositionMarker
         this.accuracy_mesh.position.set(position.x, position.y, position.z);
         this.scene = scene;
         scene.add(this.accuracy_mesh);
+        this.#disc_el = disc_el;
     }
 
     /**
      * Sets the position of the marker and its accuracy.
      * @param {THREE.Vector3} position
      * @param {number} accuracy A positive value in meters. This will determine the size of the accuracy sphere for this marker.
+     * @param {THREE.Camera} camera
+     * @param {number} viewport_width The width of the viewport
+     * @param {number} viewport_heigth The height of the viewport
      */
-    set_position(position = new THREE.Vector3(), accuracy = 0)
+    set_position(position = new THREE.Vector3(), accuracy = 0, camera, viewport_width, viewport_heigth)
     {
-        super.set_position(position);
-
         // limit to 50m, as any larger makes no sense for display purposes.
         if (accuracy > 50) accuracy = 50;
         accuracy *= 2;      // remember to double for drawing the sphere!
@@ -216,6 +226,37 @@ class GPSPositionMarker extends PositionMarker
         let height_scale = accuracy / 100;
         if (height_scale < 0.1) height_scale = 0.1;
         this.accuracy_mesh.scale.set(accuracy, height_scale, accuracy);
+
+        // For working out if the marker is in the frustrum. If not can skip the screen projection.
+        const frustum = new THREE.Frustum();
+        frustum.setFromProjectionMatrix(camera.projectionMatrix)
+        frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
+        let bb = new THREE.Box3().setFromCenterAndSize(position, new THREE.Vector3(1,1,1));
+        let in_view = false;
+        if(frustum.intersectsBox(bb)) 
+        {
+            // The 3D position of marker needs to be projected to the screen to set the disc element position.
+            let tempV = position.clone();
+
+            // get the normalized screen coordinate of that position
+            // x and y will be in the -1 to +1 range with x = -1 being
+            // on the left and y = -1 being on the bottom
+            tempV.project(camera);
+            // convert the normalized position to CSS coordinates
+            const x = (tempV.x *  .5 + .5) * viewport_width;
+            const y = (tempV.y * -.5 + .5) * viewport_heigth;
+            //console.log(x, y, tempV.x, tempV.y);
+            // move the elem to that position
+            this.#disc_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
+            if (Math.abs(tempV.z) <= 1) in_view = true;
+        }
+        
+        if (in_view) 
+            this.#disc_el.style.opacity = 1;
+        else
+            this.#disc_el.style.opacity = 0;
+
+        this.position = position;
     }
 
     /**
@@ -224,9 +265,8 @@ class GPSPositionMarker extends PositionMarker
      */
     visible(is_visible)
     {
-        super.visible(is_visible);
-
         this.accuracy_mesh.visible = is_visible;
+        this.#disc_el.style.opacity = is_visible ? 1 : 0;
     }
 
     /**
@@ -234,8 +274,6 @@ class GPSPositionMarker extends PositionMarker
      */
     destroy()
     {
-        super.destroy();
-
         this.scene.remove(this.accuracy_mesh);
         this.accuracy_mesh.geometry.dispose();
         this.accuracy_mesh.material.dispose();
