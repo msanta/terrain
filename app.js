@@ -24,6 +24,7 @@ class App
     prv_cam_state;
     prv_control_state;
     #user_is_updating_controls = false;
+    #camera_position_changed = false;
     /**
      * @type {Project} The project instance for this app.
      */
@@ -146,6 +147,7 @@ class App
         this.controls.minDistance = 50;
         this.controls.addEventListener('start', () => self.#controls_input('start'));
         this.controls.addEventListener('end', () => self.#controls_input('end'));
+        this.controls.addEventListener('change', () => {self.#camera_position_changed = true;});
         //this.controls.zoomToCursor = true;
 
         const axesHelper = new THREE.AxesHelper( 200 );
@@ -192,7 +194,7 @@ class App
             {
                 if (this.#follow_gps) this.unfollow_gps();
             }
-            if (this.#user_is_updating_controls && this.devicepos.state == 'receiving')
+            if (this.#camera_position_changed && this.devicepos.state == 'receiving')
             {
                 // forces the marker position to be updated when the user moves the camera.
                 let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
