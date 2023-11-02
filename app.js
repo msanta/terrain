@@ -368,7 +368,7 @@ class App
             const altitude = this.devicepos.altitude ? this.devicepos.altitude.toFixed(1) + 'm' : 'n/a';
             const altitude_accuracy = this.devicepos.altitude_accuracy ? this.devicepos.altitude_accuracy.toFixed(1) + 'm': 'n/a';
             const heading = this.devicepos.heading ? this.devicepos.heading.toFixed(1) : 'n/a';
-            const speed = this.devicepos.speed ? this.debuginfo.speed.toFixed(1) + 'm/s' : 'n/a';
+            const speed = this.devicepos.speed ? this.devicepos.speed.toFixed(1) + 'm/s' : 'n/a';
             let html = `Latitude: ${this.devicepos.lat}, Longitude: ${this.devicepos.lon}, Accuracy: ${this.devicepos.accuracy.toFixed(1)} m` + '<br/>';
             html += `Altitude: ${altitude}, Altitude Accuracy: ${altitude_accuracy}` + '<br/>';
             html += `Heading: ${heading}, Speed: ${speed}`;
