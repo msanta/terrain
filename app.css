@@ -129,3 +129,30 @@ body {
     background-image: url("./images/gps_location.png");
     opacity: 1;
 }
+
+
+#scalebar_container {
+    position: absolute;
+    width: 300px;
+    height: 20px;
+    bottom: 30px;
+    left: 10px;
+    user-select: none;
+    pointer-events: none;
+}
+
+#scalebar {
+    position: absolute;
+    width: 200px;
+    height: 10px;
+    bottom: 0px;
+    border-left: 2px solid black;
+    border-right: 2px solid black;
+    border-bottom: 2px solid black;
+}
+
+#scalebar_val {
+    position: absolute;
+    bottom: 0px;
+    padding-left: 10px;
+}

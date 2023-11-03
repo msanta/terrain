@@ -7,6 +7,7 @@ import { Vector3 } from './three.module.min.js';
 import { DevicePosition } from './deviceposition.js';
 import { GPSPositionMarker, PositionMarker, ScreenSpace } from './position_marker.js';
 import { KML } from './kml.js';
+import { ScaleBar } from './distance.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -19,6 +20,7 @@ class App
     controls;
     light;
     devicepos;
+    scalebar;
 
     /** Indicates if a render is in progress */
     #is_rendering;
@@ -66,6 +68,7 @@ class App
         this.#display_width = 0;
         let self = this;
         this.devicepos = new DevicePosition(() => self.#on_gps_init(), () => self.#on_gps_update(), () => self.#on_gps_stopped(), (error) => self.#on_gps_error(error));
+        this.scalebar = new ScaleBar({top: 0, left: 0}, {width: 0, height: 0});
     };
 
     initialise()
@@ -226,6 +229,11 @@ class App
                 let self = this;
                 this.#lod_update_timeout = setTimeout((() => {self.#update_lod()}), 500);  // wait half a second before updating meshes to ensure the user has stopped moving. This is more of an issue on mobile devices. On desktops this delay could be reduced considerably.
             }
+        }
+        else
+        {
+            // Camera has stopped moving. Can now adjust the scalebar. Note: this only is recommended for on demand rendering, otherwise this section gets called every loop when the camera is idle.
+            this.scalebar.update(this.camera, this.scene, this.#display_width, this.#display_height);
         }
 
         this.prv_cam_pos = {x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z};

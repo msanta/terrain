@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.2.10";
+const app_version = "v1.3.0";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -41,7 +41,8 @@ self.addEventListener("install", (event) => {
             "./terrain.js",
             "./terrain_chunk.js",
             "./position_marker.js",
-            "./kml.js"
+            "./kml.js",
+            "./distance.js"
         ]),
     );
     console.log('installed');
