@@ -61,6 +61,11 @@ class Terrain
                 };
                 TCI.native_resolution = this.info.native_resolution;
                 TCI.lod = 20;
+                if (this.info.chunk_size % TCI.lod !== 0)
+                {
+                    if (this.info.chunk_size % 10 == 0) TCI.lod = 10;
+                    else TCI.lod = this.info.chunk_size / 2;            // should always be possible.
+                }
                 let TC = new TerrainChunk(this.scene, TCI, this.data_buffer);
                 this.chunks.push(TC);
             }
@@ -76,6 +81,7 @@ class Terrain
         frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
 
         let levels = {
+            0.5: {500: 0.5, 1000: 1, 2000: 2, 4000: 5, 8000: 10, 20000: 10},
             1: {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10, 20000: 20},
             2: {3000: 2, 6000: 4, 10000: 8, 20000: 20},
             5: {10000: 5, 20000: 20}

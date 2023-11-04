@@ -128,6 +128,13 @@ class Project
     {
         let TI = new TerrainInfo();
         TI.chunk_size = 400;
+        if (info.size.x % TI.chunk_size !== 0)  // Can the terrain be evenly divided by chunk size? If not, try other factors.
+        {
+            if (info.size.x % 250 == 0)
+                TI.chunk_size = 250;
+            else
+                TI.chunk_size = info.size.x;
+        }
         TI.data_size = {w: info.size.x / info.resolution + 1, h: info.size.y / info.resolution + 1};
         TI.size = {w: info.size.x, h: info.size.y};
         TI.position = {
