@@ -119,13 +119,13 @@
                 } else if (registration.active) {
                 console.log('Service worker active');
                 }
-                // registration.addEventListener('updatefound', (e) => {
-                //     console.info("update found");
-                //     if (confirm("A new version of this application was found. Please close the page and open it to use the newest version. (NOTE: Reloading the page will not be enough. It has to be closed and opened again.)"))
-                //     {
-                //         location.reload();
-                //     }
-                // })
+                registration.addEventListener('updatefound', (e) => {
+                    console.info("update found");
+                    if (confirm("A new version of this application was found. Please close the page and open it to use the newest version. (NOTE: Reloading the page will not be enough. It has to be closed and opened again.)"))
+                    {
+                        location.reload();
+                    }
+                })
             } catch (error) {
                 console.error(`Registration failed with ${error}`);
             }
