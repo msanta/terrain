@@ -215,7 +215,7 @@ class App
             {
                 if (this.#follow_gps) this.unfollow_gps();
             }
-            if (this.#camera_position_changed && this.devicepos.state == 'receiving')
+            if (this.#camera_position_changed && this.devicepos.state == 'receiving' && this.project)
             {
                 // forces the marker position to be updated when the user moves the camera.
                 let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
@@ -376,6 +376,8 @@ class App
         let el = document.getElementById('geolocation');
         if (el) el.innerHTML = 'Starting GPS';
         console.log('start geolocation');
+        el = document.getElementById('gps_info');
+        el.style.opacity = 1;
     }
 
     /**
@@ -392,7 +394,13 @@ class App
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
             this.#request_render();
         }
-        let el = document.getElementById('geolocation');
+        let el = document.getElementById('gps_info_lat');
+        el.innerHTML = 'Lat: ' + this.devicepos.lat;
+        el = document.getElementById('gps_info_lon');
+        el.innerHTML = 'Lon: ' + this.devicepos.lon;
+        el = document.getElementById('gps_info_accuracy');
+        el.innerHTML = 'Acc: ' + this.devicepos.accuracy.toFixed(1) + 'm';
+        el = document.getElementById('geolocation');
         if (el)
         {
             const altitude = this.devicepos.altitude ? this.devicepos.altitude.toFixed(1) + 'm' : 'n/a';
@@ -418,6 +426,8 @@ class App
         let el = document.getElementById('geolocation');
         if (el) el.innerHTML = 'GPS stopped';
         console.log('stopped geolocation');
+        el = document.getElementById('gps_info');
+        el.style.opacity = 0;
     }
     
     /**
@@ -502,7 +512,7 @@ class App
      */
     #focus_camera_on_location(location)
     {
-        if (!this.project.is_location_in_bounds(location)) return;
+        if (!this.project || !this.project.is_location_in_bounds(location)) return;
         // apply current distance difference to new target
         let x = location.x + this.camera.position.x - this.controls.target.x;
         let y = location.y + this.camera.position.y - this.controls.target.y;

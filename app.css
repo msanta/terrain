@@ -156,3 +156,33 @@ body {
     bottom: 0px;
     padding-left: 10px;
 }
+
+#gps_info {
+    position: absolute;
+    bottom: 0px;
+    width: 300px;
+    height: 24px;
+    padding-top: 4px;
+    background-color: #000000a0;
+    font-size: 12px;
+    color: white;
+    opacity: 0;
+    user-select: none;
+    pointer-events: none;
+}
+
+#gps_info_lat {
+    position: absolute;
+    width: 100px;
+    left: 0px;
+}
+#gps_info_lon {
+    position: absolute;
+    width: 100px;
+    left: 100px;
+}
+#gps_info_accuracy {
+    position: absolute;
+    width: 100px;
+    left: 210px;
+}
