@@ -102,12 +102,8 @@ class Project
     convert_latlon_to_utm(lat, lon)
     {
         let latlon = new UTM.LatLon(lat, lon);
-        let utm = latlon.toUtm();
+        let utm = latlon.toUtm(this.project_info.zone); // Must use the project's zone or the returned values will be off the project's map
         return {zone: utm.zone, easting: utm.easting.toFixed(0), northing: utm.northing.toFixed(0)};
-        // let test = new UTM.LatLon(-33.76329230013953, 150.6548683296836);
-    // console.log(test.toUtm().toString());
-    // test = new UTM.LatLon(-33.7633156, 150.6548521);
-    // console.log(test.toUtm().toString());
     }
 
     /**
