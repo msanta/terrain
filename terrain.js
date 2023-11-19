@@ -119,7 +119,7 @@ class Terrain
             }
         }
     let end = Date.now();
-        console.log('in bb: ', inbb.length, 'update: ', updated.length, 'Time taken: ', end - start);
+        //console.log('in bb: ', inbb.length, 'update: ', updated.length, 'Time taken: ', end - start);
     }
 
     /**

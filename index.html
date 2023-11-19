@@ -74,6 +74,7 @@
                 <div id="gps_info_lat">LAT</div>
                 <div id="gps_info_lon">LON</div>
                 <div id="gps_info_accuracy">ACC</div>
+                <div id="terrain_elevation">ELEV</div>
             </div>
         </div>
 
@@ -123,7 +124,7 @@
                     console.info("update found");
                     if (confirm("A new version of this application was found. Please close the page and open it to use the newest version. (NOTE: Reloading the page will not be enough. It has to be closed and opened again.)"))
                     {
-                        location.reload();
+                        //location.reload();
                     }
                 })
             } catch (error) {

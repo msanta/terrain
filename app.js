@@ -393,6 +393,8 @@ class App
             if (this.#follow_gps) this.#focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
             this.#request_render();
+            let el = document.getElementById('terrain_elevation');
+            el.innerHTML = 'Elev: ' + (pos.y ?? '-9999') + 'm';
         }
         let el = document.getElementById('gps_info_lat');
         el.innerHTML = 'Lat: ' + this.devicepos.lat;
@@ -551,7 +553,7 @@ class App
             const altitude = this.devicepos.altitude ? this.devicepos.altitude.toFixed(1) + 'm' : 'n/a';
             const altitude_accuracy = this.devicepos.altitude_accuracy ? this.devicepos.altitude_accuracy.toFixed(1) + 'm': 'n/a';
             const heading = this.devicepos.heading ? this.devicepos.heading.toFixed(1) : 'n/a';
-            const speed = this.devicepos.speed ? this.debuginfo.speed.toFixed(1) + 'm/s' : 'n/a';
+            const speed = this.devicepos.speed ? this.devicepos.speed.toFixed(1) + 'm/s' : 'n/a';
             let html = `Latitude: ${lat}, Longitude: ${lon}, Accuracy: ${this.devicepos.accuracy.toFixed(1)} m` + '<br/>';
             html += `Altitude: ${altitude}, Altitude Accuracy: ${altitude_accuracy}` + '<br/>';
             html += `Heading: ${heading}, Speed: ${speed}`;

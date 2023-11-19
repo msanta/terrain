@@ -160,7 +160,7 @@ body {
 #gps_info {
     position: absolute;
     bottom: 0px;
-    width: 300px;
+    width: 400px;
     height: 24px;
     padding-top: 4px;
     background-color: #000000a0;
@@ -185,4 +185,9 @@ body {
     position: absolute;
     width: 100px;
     left: 210px;
+}
+#terrain_elevation {
+    position: absolute;
+    width: 100px;
+    left: 300px;
 }
