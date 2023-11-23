@@ -22,8 +22,6 @@ class TerrainChunk
      */
     mesh = undefined;
 
-    bbox = undefined;
-
     mesh_center = new THREE.Vector3();
     
     /**
@@ -58,7 +56,9 @@ class TerrainChunk
         let bx = 0;
         let by = 0;
         let val = 0;
-        
+        let min = 100000;
+        let max = -100000;
+
         window._data.profiler.start_section('set vertex values');
         for (let row = 0; row < segments_h + 1; row++)
         {
@@ -74,12 +74,14 @@ class TerrainChunk
                     throw new Error('oops');
                 }
 
-                pos.array[index + 1] = val / 10 * height_mult;
+                let elevation = val / 10 * height_mult;
+                pos.array[index + 1] = elevation;
+                if (elevation > max) max = elevation;
+                if (elevation < min) min = elevation;
             }
         }
         window._data.profiler.end_section('set vertex values');
-        //geometry.computeVertexNormals();  //<-- this takes a long time to compute and isn't needed as far as I can tell. In fact, not doing this avoids strange shading issues at chunk edges.
-        window._data.profiler.start_section('create mesh and add to scene');
+        
         let colours = {
             1: {r: 1, g: 0, b: 0},
             2: {r: 1, g: 1, b: 0},
@@ -97,18 +99,14 @@ class TerrainChunk
             flatShading: true,
             //wireframe: true
         });
-        
+        window._data.profiler.start_section('create mesh and add to scene');
         this.mesh = new THREE.Mesh(geometry, material);
-        // compute bounding box to work out width/height. Then use this to position the bottom left (SW) corner.
-        this.mesh.geometry.computeBoundingBox();
-        let bb = this.mesh.geometry.boundingBox;
-        this.mesh.position.set(this.info.position.x - bb.min.x, 0, this.info.position.y + bb.min.z);
-        this.mesh_center = new THREE.Vector3(this.info.position.x + this.info.size.w / 2, (bb.min.y + bb.max.y) / 2, this.info.position.y - this.info.size.h / 2);    // Need to know the position of the bounding box center for LOD functionality.
+        this.mesh.position.set(this.info.position.x + width / 2, 0, this.info.position.y - height / 2);
+        this.mesh_center = new THREE.Vector3(this.info.position.x + this.info.size.w / 2, (min + max) / 2, this.info.position.y - this.info.size.h / 2);    // Need to know the position of the bounding box center for LOD functionality.
         this.mesh.layers.enable(1);      // all terrain meshes must be a member of layer 1. Needed for terrain raycasting.
-        //console.log(this.mesh_center);
+        
         this.scene.add(this.mesh);
-        //this.bbox = new THREE.BoxHelper( this.mesh, 0x000000 );
-        //this.scene.add( this.bbox );
+
         window._data.profiler.end_section('create mesh and add to scene');
 
     }
@@ -117,8 +115,7 @@ class TerrainChunk
     {
         window._data.profiler.start_section('remove mesh');
         this.scene.remove(this.mesh);
-    
-        //this.scene.remove(this.bbox);
+        
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
         this.mesh = undefined;
