@@ -51,6 +51,11 @@ class App
 
     _sim_gps_update = null;
 
+    /**
+     * @type {object} Registered event handlers
+     */
+    #event_handlers = {};
+
     constructor()
     {
         this.is_rendering = false;
@@ -85,7 +90,10 @@ class App
     {
         if (this.project) this.project.unload_project();
         this.project = new Project(this.scene);
-        this.project.load_project(file).then((info) => show_load_time(info));
+        this.project.load_project(file).then((info) => {
+            this.dispatch_event('loaded_project');
+            show_load_time(info);
+        });
     }
 
     unload_project()
@@ -566,6 +574,51 @@ class App
     stop_simulate_gps_update()
     {
         clearTimeout(this._sim_gps_update);
+    }
+
+
+    /** Event Handling */
+
+    /**
+     * Adds an event listener
+     * @param {string} event 
+     * @param {function} callback 
+     */
+    add_event_listener(event, callback)
+    {
+        if (this.#event_handlers[event] == undefined) this.#event_handlers[event] = [];
+        if (this.#event_handlers[event].indexOf(callback) == -1) this.#event_handlers[event].push(callback);
+    }
+
+    /**
+     * Removes an event listener
+     * @param {string} event 
+     * @param {function} callback 
+     */
+    remove_event_listener(event, callback)
+    {
+        if (this.#event_handlers[event])
+        {
+            let index = this.#event_handlers[event].indexOf(callback);
+            if (index != -1) this.#event_handlers[event].splice(index, 1);
+            if (this.#event_handlers[event].length == 0) delete this.#event_handlers[event];
+        }
+    }
+
+    /**
+     * Dispatches an event by calling all registered callbacks.
+     * @param {string} event The event to dispatch
+     * @param {object} params The parameters object to pass to the callback
+     */
+    dispatch_event(event, params)
+    {
+        if (this.#event_handlers[event])
+        {
+            for (let func of this.#event_handlers[event])
+            {
+                func(params);
+            }
+        }
     }
 
 }

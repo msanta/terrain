@@ -86,13 +86,21 @@
             </div>
             <div class="offcanvas-body">
                 <div>
-                    <input type="file" accept=".zip" id="filebrowser" style="display:none"/>
-                    <button type="button" id="filebrowserbtn" class="btn btn-primary">Open Project</button>
+                    <input type="file" accept=".zip" id="project_browser" style="display:none"/>
+                    <button type="button" id="project_browser_btn" class="btn btn-primary">Open Project</button>
+                    <button type="button" id="project_browser_btn_loading" class="btn btn-primary" disabled style="display:none">
+                        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                        <span role="status">Loading...</span>
+                    </button>
                 </div>
                 <hr />
                 <div>
-                    <input type="file" accept=".kml,.kmz" id="filebrowser2" style="display:none"/>
-                    <button type="button" id="filebrowserbtn2" class="btn btn-primary">Open KML</button>
+                    <input type="file" accept=".kml,.kmz" id="kml_browser" style="display:none"/>
+                    <button type="button" id="kml_browser_btn" class="btn btn-primary">Open KML</button>
+                    <button type="button" id="kml_browser_btn_loading" class="btn btn-primary" disabled style="display:none">
+                        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                        <span role="status">Loading...</span>
+                    </button>
                 </div>
                 <div style="position: absolute; bottom: 10px">
                     <button type="button" id="debug_toggle_btn" class="btn btn-info">Show debug info</button>
@@ -147,43 +155,55 @@
         let app = new App();
         app.initialise();
 
-        $('#filebrowserbtn').on('click', show_file_browser);
-        $('#filebrowser').on('change', file_selected);
-        $('#filebrowserbtn2').on('click', show_file_browser2);
-        $('#filebrowser2').on('change', file_selected2);
+        $('#project_browser_btn').on('click', show_project_browser);
+        $('#project_browser').on('change', project_file_selected);
+        $('#kml_browser_btn').on('click', show_kml_browser);
+        $('#kml_browser').on('change', kml_file_selected);
         $('#debug_toggle_btn').on('click', toggle_debug);
         $('#label1').on('click', () => console.log('clicked on label1'));
         $('#gps').on('click', () => app.switch_gps_state());
 
-        function show_file_browser()
+        app.add_event_listener('loaded_project', (e) => {
+            $('#project_browser_btn').show();
+            $('#project_browser_btn_loading').hide();
+            $('#close_menu_btn').click();
+        })
+
+        function show_project_browser()
         {
-            $('#filebrowser').click();
+            $('#project_browser').click();
         }
 
-        async function file_selected()
+        async function project_file_selected()
         {
-            let el = $('#filebrowser').get(0);
+            let el = $('#project_browser').get(0);
             if (!el.files.length) return; 
             let file = el.files[0];
             if (fileurl) URL.revokeObjectURL(fileurl);  // remove existing reference
             fileurl = URL.createObjectURL(file);
             app.load_project(fileurl);
             el.value = '';  // allows for reloading of same project file (change event does not fire if the same file is selected)
+            $('#project_browser_btn').hide();
+            $('#project_browser_btn_loading').show();
         }
 
-        function show_file_browser2()
+        function show_kml_browser()
         {
-            $('#filebrowser2').click();
+            $('#kml_browser').click();
         }
 
-        async function file_selected2()
+        async function kml_file_selected()
         {
-            let el = $('#filebrowser2').get(0);
+            let el = $('#kml_browser').get(0);
             if (!el.files.length) return; 
             let file = el.files[0];
             if (fileurl2) URL.revokeObjectURL(fileurl2);  // remove existing reference
             fileurl2 = URL.createObjectURL(file);
+            $('#kml_browser_btn').hide();
+            $('#kml_browser_btn_loading').show();
             await app.load_kml(fileurl2);
+            $('#kml_browser_btn').show();
+            $('#kml_browser_btn_loading').hide();
             $('#close_menu_btn').click();
         }
 
