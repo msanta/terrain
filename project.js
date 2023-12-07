@@ -71,7 +71,7 @@ class Project
             window.app.controls.update();
         }
 
-        this.dispatch_event('loaded');
+        this.dispatch_event('loaded', this.project_info);
 
         return Profiler.totals;
     }

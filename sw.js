@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.3.8";
+const app_version = "v1.4.0";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -14,6 +14,8 @@ self.addEventListener("install", (event) => {
             "./index.html",
             // css
             "./bootstrap/css/bootstrap.min.css",
+            "./bootstrap/css/bootstrap-icons.min.css",
+            "./bootstrap/css/fonts/bootstrap-icons.woff2",
             "./app.css",
             // images
             "./images/compass.png",

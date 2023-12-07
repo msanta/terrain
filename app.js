@@ -88,10 +88,12 @@ class App
 
     load_project(file)
     {
-        if (this.project) this.project.unload_project();
+        if (this.project) this.unload_project();
         this.project = new Project(this.scene);
+        this.project.add_event_listener('loaded', (info) => {
+            this.dispatch_event('loaded_project', info);
+        });
         this.project.load_project(file).then((info) => {
-            this.dispatch_event('loaded_project');
             show_load_time(info);
         });
     }
@@ -99,6 +101,14 @@ class App
     unload_project()
     {
         if (this.project) this.project.unload_project();
+        if (this.#locations.length > 0) {
+            //need to remove existing locations
+            for (let location of this.#locations)
+            {
+                location.destroy();
+            }
+            this.#locations = [];
+        }
         this.project = null;
     }
 
@@ -120,21 +130,26 @@ class App
         let kml = new KML();
         this.kml = await kml.load(file);
         let labels_container = document.getElementById('labels');
-        for (let location of this.kml.locations)
+        for (let folder in this.kml.locations)
         {
-            //console.log(location);
-            let utm = this.project.convert_latlon_to_utm(location.lat, location.lon);
-            let x = utm.easting - this.project.project_info.origin.x;
-            let z = utm.northing - this.project.project_info.origin.y;
-            let y = this.project.get_terrain_height_at_location2(x, -z);
-            if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
-            let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
-            if (location.name !== '') marker.set_label(location.name);
-            this.#locations.push(marker);
-            //console.log(location.name, x,y,-z);
+            for (let location of this.kml.locations[folder])
+            {
+                //console.log(location);
+                let utm = this.project.convert_latlon_to_utm(location.lat, location.lon);
+                let x = utm.easting - this.project.project_info.origin.x;
+                let z = utm.northing - this.project.project_info.origin.y;
+                let y = this.project.get_terrain_height_at_location2(x, -z);
+                if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
+                let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
+                if (location.name !== '') marker.set_label(location.name);
+                this.#locations.push(marker);
+                //console.log(location.name, x,y,-z);
+            }
         }
         this.#update_marker_labels();
         this.#request_render();
+
+        return this.kml;
     }
 
 
@@ -398,7 +413,7 @@ class App
             let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             console.log(this.devicepos, utm, pos);
-            if (this.#follow_gps) this.#focus_camera_on_location(pos);
+            if (this.#follow_gps) this.focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
             this.#request_render();
             let el = document.getElementById('terrain_elevation');
@@ -460,7 +475,7 @@ class App
         this.#follow_gps = true;
         let old_dist = this.controls.maxDistance;
         this.controls.maxDistance = 500;  // force the camera close to the gps position.
-        this.#focus_camera_on_location(this.#gps_marker.position);
+        this.focus_camera_on_location(this.#gps_marker.position);
         this.controls.update();
         this.controls.maxDistance = old_dist;
         let gps_el = $('#gps');
@@ -520,7 +535,7 @@ class App
      * Focuses the camera onto the given location. This only works for locations within the bounds of the current project.
      * @param {THREE.Vector3} location 
      */
-    #focus_camera_on_location(location)
+    focus_camera_on_location(location)
     {
         if (!this.project || !this.project.is_location_in_bounds(location)) return;
         // apply current distance difference to new target
@@ -551,7 +566,7 @@ class App
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             if (pos.y == -9999) pos.y = 0;
             //console.log(this.devicepos, utm, pos);
-            if (this.#follow_gps) this.#focus_camera_on_location(pos);
+            if (this.#follow_gps) this.focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
             this.#request_render();
         }
@@ -574,6 +589,32 @@ class App
     stop_simulate_gps_update()
     {
         clearTimeout(this._sim_gps_update);
+    }
+
+    search_locations(search)
+    {
+        let matches = [];
+        let regex = new RegExp(search, 'i');
+        if (this.#locations)
+        {
+            for (let location of this.#locations)
+            {
+                if (regex.test(location.label_text))
+                {
+                    matches.push(location);
+                }
+            }
+        }
+        // console.log('found:', matches);
+        return matches;
+    }
+
+    find_location_by_name(name)
+    {
+        for (let location of this.#locations)
+        {
+            if (location.label_text == name) return location;
+        }
     }
 
 

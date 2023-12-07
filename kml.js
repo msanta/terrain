@@ -9,7 +9,10 @@ class KML
      */
     doc = null;
 
-    locations = [];
+    locations = {};
+
+    name = null;
+    locations_cnt = 0;
 
     /**
      * Loads a KML file.
@@ -21,24 +24,33 @@ class KML
             const req = new XMLHttpRequest();
             req.onload = (e) => {
                 let doc = this.doc = req.response;
-                let placemarks = $(doc).find('Placemark');
-                let locations = [];
-                for (let placemark of placemarks)
+                this.name = $(doc).find('name').first().text();
+                // Look for folders
+                let folders = $(doc).find('Folder');
+                for (let folder of folders)
                 {
-                    let name = $(placemark).find('name').text();
-                    let coords = $(placemark).find('coordinates').text();
-                    // Placemarks can represent tracks which don't have a coordinates node. Skip them.
-                    if (coords == '') continue;
-                    coords = coords.split(',');
-                    locations.push({
-                        name: name,
-                        lon: coords[0],
-                        lat: coords[1],
-                        height: coords[2] ?? null
-                    })
-                    //console.log(name, coords);
+                    // Look for placemarks
+                    let placemarks = $(folder).find('Placemark');
+                    let locations = [];
+                    for (let placemark of placemarks)
+                    {
+                        let name = $(placemark).find('name').text();
+                        let coords = $(placemark).find('coordinates').text();
+                        // Placemarks can represent tracks which don't have a coordinates node. Skip them.
+                        if (coords == '') continue;
+                        coords = coords.split(',');
+                        locations.push({
+                            name: name,
+                            lon: coords[0],
+                            lat: coords[1],
+                            height: coords[2] ?? null
+                        })
+                        //console.log(name, coords);
+                    }
+                    let folder_name = $(folder).find('name').first().text();
+                    this.locations[folder_name] = locations;
+                    this.locations_cnt += locations.length;
                 }
-                this.locations = locations;
                 resolve(this);
                 return;
             };
