@@ -164,6 +164,7 @@
         let debug_status = false;
         let proj_fileurl = null;
         let kml_fileurl = null;
+        let search_timeout = null;
         let app = new App();
         app.initialise();
 
@@ -174,8 +175,8 @@
         $('#debug_toggle_btn').on('click', toggle_debug);
         $('#label1').on('click', () => console.log('clicked on label1'));
         $('#gps').on('click', () => app.switch_gps_state());
-        $('#search').on('change', do_search);
-        // $('#search_btn').on('click', toggle_search);
+        $('#search').on('keydown', wait_to_do_search);
+        $('#search').on('change', wait_to_do_search);
 
         app.add_event_listener('loaded_project', (e) => {
             $('#project_browser_btn').show();
@@ -226,6 +227,12 @@
             $('#search_container').show();
         }
 
+        function wait_to_do_search()
+        {
+            window.clearTimeout(search_timeout);
+            search_timeout = window.setTimeout(do_search, 250);
+        }
+
         function do_search()
         {
             let text = $('#search').val();
@@ -259,6 +266,7 @@
             let loc = app.find_location_by_name(el.target.textContent)
             app.focus_camera_on_location(loc.mesh.position.clone());
             console.log(el.target.textContent, loc);
+            //app.request_render();
         }
 
 
