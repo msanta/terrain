@@ -104,7 +104,7 @@ class PositionMarker
                     // move the elem to that position
                     this.label_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
                     // set the zIndex for sorting
-                    this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
+                   // this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
                     // make elements further away more transparent.
                     //this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
                 }
@@ -291,6 +291,9 @@ class GPSPositionMarker
 }
 
 
+/**
+ * Class for keeping track of screen space available for labels and for checking if a given area already has a label.
+ */
 class ScreenSpace
 {
     static occupied;

@@ -8,6 +8,7 @@ import { DevicePosition } from './deviceposition.js';
 import { GPSPositionMarker, PositionMarker, ScreenSpace } from './position_marker.js';
 import { KML } from './kml.js';
 import { ScaleBar } from './distance.js';
+import { LocationManager } from './location_manager.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -35,6 +36,11 @@ class App
     project;
 
     kml;
+
+    /**
+     * @type {LocationManager} The Marker Manager responsible for markers for the current project.
+     */
+    location_manager;
 
     #lod_update_timeout = undefined;
 
@@ -96,19 +102,14 @@ class App
         this.project.load_project(file).then((info) => {
             show_load_time(info);
         });
+        this.location_manager = new LocationManager(this.project, this.scene);
     }
 
     unload_project()
     {
         if (this.project) this.project.unload_project();
-        if (this.#locations.length > 0) {
-            //need to remove existing locations
-            for (let location of this.#locations)
-            {
-                location.destroy();
-            }
-            this.#locations = [];
-        }
+        this.location_manager.destroy();
+        this.location_manager = null;
         this.project = null;
     }
 
@@ -129,23 +130,7 @@ class App
         }
         let kml = new KML();
         this.kml = await kml.load(file);
-        let labels_container = document.getElementById('labels');
-        for (let folder in this.kml.locations)
-        {
-            for (let location of this.kml.locations[folder])
-            {
-                //console.log(location);
-                let utm = this.project.convert_latlon_to_utm(location.lat, location.lon);
-                let x = utm.easting - this.project.project_info.origin.x;
-                let z = utm.northing - this.project.project_info.origin.y;
-                let y = this.project.get_terrain_height_at_location2(x, -z);
-                if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
-                let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
-                if (location.name !== '') marker.set_label(location.name);
-                this.#locations.push(marker);
-                //console.log(location.name, x,y,-z);
-            }
-        }
+        this.location_manager.load_locations_from_kml(this.kml);
         this.#update_marker_labels();
         this.#request_render();
 
@@ -231,6 +216,7 @@ class App
 
         if (view_change)
         {
+            console.log('view changed');
             this.#update_marker_labels();
             this.#update_light();
             this.#update_compass();
@@ -494,31 +480,8 @@ class App
 
 
     #update_marker_labels()
-    {let start = Date.now();
-        let self = this;
-        ScreenSpace.reset(this.#display_width, this.#display_height);
-        // For working out if the marker is in the frustrum
-        const frustum = new THREE.Frustum();
-        frustum.setFromProjectionMatrix(this.camera.projectionMatrix)
-        frustum.planes.forEach(function(plane) { plane.applyMatrix4(self.camera.matrixWorld) })
-        let cnt = 0;
-        for (let location of this.#locations)
-        {
-            let bb = new THREE.Box3().setFromObject(location.mesh);
-            if(frustum.intersectsBox(bb)) 
-            {
-                location.update_label_position(this.camera, this.#display_width, this.#display_height);
-            }
-            else if (location.label_el)
-            {
-                location.is_visible = false;
-                location.label_el.style.opacity = 0;
-            }
-            //if (cnt++ > 0) break;
-            if (location.is_visible) cnt++;
-        }
-        let end = Date.now();
-        //console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
+    {
+        if (this.location_manager) this.location_manager.update_marker_labels(this.camera, this.#display_width, this.#display_height);
     }
 
     #update_compass()
@@ -593,28 +556,14 @@ class App
 
     search_locations(search)
     {
-        let matches = [];
-        let regex = new RegExp(search, 'i');
-        if (this.#locations)
-        {
-            for (let location of this.#locations)
-            {
-                if (regex.test(location.label_text))
-                {
-                    matches.push(location);
-                }
-            }
-        }
-        // console.log('found:', matches);
-        return matches;
+        if (this.location_manager) return this.location_manager.search_locations(search);
+        return [];
     }
 
     find_location_by_name(name)
     {
-        for (let location of this.#locations)
-        {
-            if (location.label_text == name) return location;
-        }
+        if (this.location_manager) return this.location_manager.find_location_by_name(name);
+        return null;
     }
 
 

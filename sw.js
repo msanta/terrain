@@ -44,7 +44,9 @@ self.addEventListener("install", (event) => {
             "./terrain_chunk.js",
             "./position_marker.js",
             "./kml.js",
-            "./distance.js"
+            "./distance.js",
+            "./location_manager.js",
+            "./helper.js"
         ]),
     );
     console.log('installed');
