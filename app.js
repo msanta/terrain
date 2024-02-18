@@ -9,6 +9,7 @@ import { GPSPositionMarker, PositionMarker, ScreenSpace } from './position_marke
 import { KML } from './kml.js';
 import { ScaleBar } from './distance.js';
 import { LocationManager } from './location_manager.js';
+import { PointerEventListener } from './pointer_event_listener.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -82,12 +83,14 @@ class App
         this.scalebar = new ScaleBar({top: 0, left: 0}, {width: 0, height: 0});
     };
 
-    initialise()
+    initialise(canvas_el)
     {
-        this.#setup_renderer();
+        this.#setup_renderer(canvas_el);
         this.#request_render();
         let self = this;
-        this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
+        this.pointerevents = new PointerEventListener(canvas_el);
+        this.pointerevents.add_event_listener('dbl_down', (e) => self.#double_clicked_scene(e));
+        //this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
         this.#gps_marker = new GPSPositionMarker(this.scene, new THREE.Vector3(), document.getElementById('gps_loc'));
         this.#gps_marker.visible(false);
     }
@@ -101,8 +104,8 @@ class App
         });
         this.project.load_project(file).then((info) => {
             show_load_time(info);
+            this.location_manager = new LocationManager(this.project, this.scene);
         });
-        this.location_manager = new LocationManager(this.project, this.scene);
     }
 
     unload_project()
@@ -138,10 +141,10 @@ class App
     }
 
 
-    #setup_renderer()
+    #setup_renderer(canvas_el)
     {
 
-        this.renderer = new THREE.WebGLRenderer({canvas: document.getElementById('render_canvas')});
+        this.renderer = new THREE.WebGLRenderer({canvas: canvas_el});
         this.#display_width = window.innerWidth;
         this.#display_height = window.innerHeight;
         this.renderer.setSize( this.#display_width, this.#display_height );
@@ -216,7 +219,7 @@ class App
 
         if (view_change)
         {
-            console.log('view changed');
+            // console.log('view changed');
             this.#update_marker_labels();
             this.#update_light();
             this.#update_compass();
