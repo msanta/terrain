@@ -176,7 +176,8 @@
         $('#label1').on('click', () => console.log('clicked on label1'));
         $('#gps').on('click', () => app.switch_gps_state());
         $('#search').on('keydown', wait_to_do_search);
-        $('#search').on('change', wait_to_do_search);
+        $('#search').on('focusout', search_lost_focus);
+        $('#search').on('focusin', search_gained_focus);
 
         app.add_event_listener('loaded_project', (e) => {
             $('#project_browser_btn').show();
@@ -254,6 +255,19 @@
             }
             $('#search_results').html(html);
             $('#search_results li').on('click', selected_marker);
+            $('#search_results').show();
+        }
+
+        function search_lost_focus()
+        {
+            //
+            let hide_search_timeout = window.setTimeout(() => {$('#search_results').hide();}, 250);
+        }
+
+        function search_gained_focus()
+        {
+            // If there are existing search results then show them.
+            $('#search_results').show();
         }
 
         function toggle_search()
@@ -267,6 +281,7 @@
             app.focus_camera_on_location(loc.mesh.position.clone());
             console.log(el.target.textContent, loc);
             //app.request_render();
+            //$('#search_results').html('');
         }
 
 
