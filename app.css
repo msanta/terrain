@@ -191,3 +191,15 @@ body {
     width: 100px;
     left: 300px;
 }
+#search_container {
+    position: absolute;
+    width: 300px;
+    right: 0px;
+}
+#search_results {
+    max-height: 150px;
+    width: 300px;
+    top: 40px;
+    position: absolute;
+    overflow-y: scroll;
+}

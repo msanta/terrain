@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Terrain, TerrainInfo } from './terrain.js';
 import { Profiler } from './profiler.js';
 import * as UTM from './geodesy/utm.js';
+import { Helper } from './helper.js';
 
 class Project
 {
@@ -71,7 +72,7 @@ class Project
             window.app.controls.update();
         }
 
-        this.dispatch_event('loaded');
+        this.dispatch_event('loaded', this.project_info);
 
         return Profiler.totals;
     }
@@ -108,9 +109,7 @@ class Project
      */
     convert_latlon_to_utm(lat, lon)
     {
-        let latlon = new UTM.LatLon(lat, lon);
-        let utm = latlon.toUtm(this.project_info.zone); // Must use the project's zone or the returned values will be off the project's map
-        return {zone: utm.zone, easting: utm.easting.toFixed(0), northing: utm.northing.toFixed(0)};
+        return Helper.convert_latlon_to_utm(lat, lon, this.project_info.zone);
     }
 
     /**
@@ -205,6 +204,74 @@ class Project
         }
         //console.log(bottom_left, top_right);
         return !(location.x < bottom_left.x - buffer || location.x > top_right.x + buffer || location.z > bottom_left.z + buffer || location.z < top_right.z - buffer);
+    }
+
+    /**
+     * Get the UTM zone for this project.
+     * @returns {number} The project UTM zone.
+     */
+    get_utm_zone()
+    {
+        return this.project_info.zone;
+    }
+
+    /**
+     * Checks if two points have a direct line of sight to each other based on the terrain.
+     * @param {THREE.Vector3} pt1 Point 1
+     * @param {THREE.Vector3} pt2 Point 2
+     * @param {float} cutoff The max distance to check for line of sight, defaults to null. Any points further than this are assumed to be not in line of sight. If null then no cutoff is used.
+     * @returns 
+     */
+    in_line_of_sight(pt1, pt2, cutoff = null)
+    {
+        const dx = pt1.x - pt2.x;
+        const dy = pt1.y - pt2.y;
+        const dz = pt1.z - pt2.z;
+        const dist = pt1.distanceTo(pt2); // Math.sqrt(dx * dx + dz * dz);
+        if (cutoff !== null && dist > cutoff) return false;
+        const dirx = dx !== 0 ? -dx / dx : 0;
+        const diry = dy !== 0 ? -dy / dy : 0;
+        const dirz = dz !== 0 ? -dz / dz : 0;
+        
+        // Take X meter steps along a line from pt1 to pt2 and check if the terrain height is greater than the height of the line at that point. If so then there is no clear line of sight. The stepsize depends on the distance.
+        let stepsize = dist / 100;      // TODO: improve this when the camera is looking straight down from a distance.
+        if (stepsize < 2) stepsize = 2;
+        let started_below_ground = false;
+        for (let i = 0; i < dist; i += stepsize)
+        {
+            let ratio = i / dist;
+            let px = pt1.x + dx * ratio * dirx;
+            let pz = pt1.z + dz * ratio * dirz;
+            let py = pt1.y + dy * ratio * diry;
+            let height = -9999;
+            for (let terrain of this.terrains)
+            {
+                let bottom_left = terrain.info.position;
+                let size = terrain.info.size; 
+                if (px >= bottom_left.x && px <= bottom_left.x + size.w && pz <= bottom_left.y && pz >= bottom_left.y - size.h)
+                {
+                    height = terrain.get_height_at_location(px, pz);
+                }
+            }
+            if (height > py + 2)
+            {
+                // If the 'starting' point was below ground set a flag to indicate that. If the line of sight goes above the terrain and does not get intersected then the point can be treated as being in sight (ie can be seen from underneath the 'ground').
+                if (i == 0)
+                {
+                    started_below_ground = true;
+                }
+                else
+                {
+                    if (started_below_ground == false) return;
+                }
+            }
+            else
+            {
+                started_below_ground = false;
+            }
+        }
+
+        return true;
     }
 
     #load_zip_file(file)

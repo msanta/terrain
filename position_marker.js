@@ -22,10 +22,16 @@ class PositionMarker
     scene;
 
     is_visible;
+    
+    /**
+     * @type {string} The marker's label text.
+     */
+    label_text;
 
     #label_width;
     #label_height;
     #label_state_change;
+
 
     /**
      * 
@@ -59,6 +65,7 @@ class PositionMarker
         this.label_el = elem;
         this.#label_width = elem.clientWidth;
         this.#label_height = elem.clientHeight;
+        this.label_text = name;
     }
 
     update_label_position(camera, renderer_width, renderer_height)
@@ -83,7 +90,7 @@ class PositionMarker
            
             // convert the normalized position to CSS coordinates
             const x = (tempV.x *  .5 + .5) * renderer_width;
-            const y = (tempV.y * -.5 + .5) * renderer_height;
+            const y = (tempV.y * -.5 + .5) * renderer_height - 15;
         
             // Is there free space to position the label?
             if (Math.abs(tempV.z) > 1) visible = false;
@@ -97,7 +104,7 @@ class PositionMarker
                     // move the elem to that position
                     this.label_el.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
                     // set the zIndex for sorting
-                    this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
+                   // this.label_el.style.zIndex = (-tempV.z * .5 + .5) * 100000 | 0;
                     // make elements further away more transparent.
                     //this.label_el.style.opacity = (1000 + (limit - dist)) / limit;
                 }
@@ -284,6 +291,9 @@ class GPSPositionMarker
 }
 
 
+/**
+ * Class for keeping track of screen space available for labels and for checking if a given area already has a label.
+ */
 class ScreenSpace
 {
     static occupied;

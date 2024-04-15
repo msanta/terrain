@@ -8,6 +8,7 @@
 			body { margin: 0; }
 		</style>
         <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="./bootstrap/css/bootstrap-icons.min.css" />
         <link rel="stylesheet" href="./app.css" />
         <script src="./jszip/jszip.min.js"></script>
         <script src="./jquery/jquery-3.7.0.min.js"></script>
@@ -76,6 +77,15 @@
                 <div id="gps_info_accuracy">ACC</div>
                 <div id="terrain_elevation">ELEV</div>
             </div>
+            <div id="search_container" style="display: none;">
+                <div class="inpup-group">
+                    <div class="input-group mb-3">
+                        <input id="search" type="search" class="form-control" placeholder="search...">
+                        <span id="search_btn" class="input-group-text bi-search"></span>
+                    </div>
+                </div>
+                <div id="search_results"></div>
+            </div>
         </div>
 
         <div class="offcanvas offcanvas-start" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="menu"
@@ -92,6 +102,7 @@
                         <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
                         <span role="status">Loading...</span>
                     </button>
+                    <div id="project_details"></div>
                 </div>
                 <hr />
                 <div>
@@ -101,6 +112,7 @@
                         <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
                         <span role="status">Loading...</span>
                     </button>
+                    <div id="kml_details"></div>
                 </div>
                 <div style="position: absolute; bottom: 10px">
                     <button type="button" id="debug_toggle_btn" class="btn btn-info">Show debug info</button>
@@ -150,10 +162,11 @@
 
         let gps_status = false;
         let debug_status = false;
-        let fileurl = null;
-        let fileurl2 = null;
+        let proj_fileurl = null;
+        let kml_fileurl = null;
+        let search_timeout = null;
         let app = new App();
-        app.initialise();
+        app.initialise(document.getElementById('render_canvas'));
 
         $('#project_browser_btn').on('click', show_project_browser);
         $('#project_browser').on('change', project_file_selected);
@@ -162,11 +175,16 @@
         $('#debug_toggle_btn').on('click', toggle_debug);
         $('#label1').on('click', () => console.log('clicked on label1'));
         $('#gps').on('click', () => app.switch_gps_state());
+        $('#search').on('keydown', wait_to_do_search);
+        $('#search').on('change', wait_to_do_search);
 
         app.add_event_listener('loaded_project', (e) => {
             $('#project_browser_btn').show();
             $('#project_browser_btn_loading').hide();
-            $('#close_menu_btn').click();
+           // $('#close_menu_btn').click();
+            $('#project_details').html('Name: ' + e.project_name + '<br/>Desc: ' + e.description + '<br/>Zone: ' + e.zone + '<br/>Terrain Tiles: ' + e.terrains.length);
+            $('#search_container').hide();
+            $('#kml_details').html('');
         })
 
         function show_project_browser()
@@ -179,9 +197,9 @@
             let el = $('#project_browser').get(0);
             if (!el.files.length) return; 
             let file = el.files[0];
-            if (fileurl) URL.revokeObjectURL(fileurl);  // remove existing reference
-            fileurl = URL.createObjectURL(file);
-            app.load_project(fileurl);
+            if (proj_fileurl) URL.revokeObjectURL(proj_fileurl);  // remove existing reference
+            proj_fileurl = URL.createObjectURL(file);
+            app.load_project(proj_fileurl);
             el.value = '';  // allows for reloading of same project file (change event does not fire if the same file is selected)
             $('#project_browser_btn').hide();
             $('#project_browser_btn_loading').show();
@@ -197,15 +215,60 @@
             let el = $('#kml_browser').get(0);
             if (!el.files.length) return; 
             let file = el.files[0];
-            if (fileurl2) URL.revokeObjectURL(fileurl2);  // remove existing reference
-            fileurl2 = URL.createObjectURL(file);
+            if (kml_fileurl) URL.revokeObjectURL(kml_fileurl);  // remove existing reference
+            kml_fileurl = URL.createObjectURL(file);
             $('#kml_browser_btn').hide();
             $('#kml_browser_btn_loading').show();
-            await app.load_kml(fileurl2);
+            let kml = await app.load_kml(kml_fileurl);
             $('#kml_browser_btn').show();
             $('#kml_browser_btn_loading').hide();
-            $('#close_menu_btn').click();
+            $('#kml_details').html('Name: ' + kml.name + '<br>Locations: ' + kml.locations_cnt)
+           // $('#close_menu_btn').click();
+            $('#search_container').show();
         }
+
+        function wait_to_do_search()
+        {
+            window.clearTimeout(search_timeout);
+            search_timeout = window.setTimeout(do_search, 250);
+        }
+
+        function do_search()
+        {
+            let text = $('#search').val();
+            if (text === '')
+            {
+                $('#search_results').html('');
+                return;
+            }
+            let matches = app.search_locations(text);
+            $('#search_results').html('');
+            let html = '<ul class="list-group">';
+            for (let match of matches)
+            {
+                html += '<li class="list-group-item">' + match.label_text + '</li>';
+            }
+            if (matches.length == 0)
+            {
+                html += '<li class="list-group-item">No results</li>';
+            }
+            $('#search_results').html(html);
+            $('#search_results li').on('click', selected_marker);
+        }
+
+        function toggle_search()
+        {
+            $('#search').toggle();
+        }
+
+        function selected_marker(el)
+        {
+            let loc = app.find_location_by_name(el.target.textContent)
+            app.focus_camera_on_location(loc.mesh.position.clone());
+            console.log(el.target.textContent, loc);
+            //app.request_render();
+        }
+
 
         function toggle_debug()
         {

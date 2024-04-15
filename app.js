@@ -8,6 +8,9 @@ import { DevicePosition } from './deviceposition.js';
 import { GPSPositionMarker, PositionMarker, ScreenSpace } from './position_marker.js';
 import { KML } from './kml.js';
 import { ScaleBar } from './distance.js';
+import { LocationManager } from './location_manager.js';
+import { PointerEventListener } from './pointer_event_listener.js';
+import { Helper } from './helper.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -35,6 +38,11 @@ class App
     project;
 
     kml;
+
+    /**
+     * @type {LocationManager} The Marker Manager responsible for markers for the current project.
+     */
+    location_manager;
 
     #lod_update_timeout = undefined;
 
@@ -76,29 +84,36 @@ class App
         this.scalebar = new ScaleBar({top: 0, left: 0}, {width: 0, height: 0});
     };
 
-    initialise()
+    initialise(canvas_el)
     {
-        this.#setup_renderer();
+        this.#setup_renderer(canvas_el);
         this.#request_render();
         let self = this;
-        this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
+        this.pointerevents = new PointerEventListener(canvas_el);
+        this.pointerevents.add_event_listener('dbl_down', (e) => self.#double_clicked_scene(e));
+        //this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
         this.#gps_marker = new GPSPositionMarker(this.scene, new THREE.Vector3(), document.getElementById('gps_loc'));
         this.#gps_marker.visible(false);
     }
 
     load_project(file)
     {
-        if (this.project) this.project.unload_project();
+        if (this.project) this.unload_project();
         this.project = new Project(this.scene);
+        this.project.add_event_listener('loaded', (info) => {
+            this.dispatch_event('loaded_project', info);
+        });
         this.project.load_project(file).then((info) => {
-            this.dispatch_event('loaded_project');
             show_load_time(info);
+            this.location_manager = new LocationManager(this.project, this.scene);
         });
     }
 
     unload_project()
     {
         if (this.project) this.project.unload_project();
+        this.location_manager.destroy();
+        this.location_manager = null;
         this.project = null;
     }
 
@@ -119,29 +134,18 @@ class App
         }
         let kml = new KML();
         this.kml = await kml.load(file);
-        let labels_container = document.getElementById('labels');
-        for (let location of this.kml.locations)
-        {
-            //console.log(location);
-            let utm = this.project.convert_latlon_to_utm(location.lat, location.lon);
-            let x = utm.easting - this.project.project_info.origin.x;
-            let z = utm.northing - this.project.project_info.origin.y;
-            let y = this.project.get_terrain_height_at_location2(x, -z);
-            if (y == -9999) continue;   // skip as there is no terrain to place the marker on.
-            let marker = new PositionMarker(this.scene, new Vector3(x, y, -z), 3);
-            if (location.name !== '') marker.set_label(location.name);
-            this.#locations.push(marker);
-            //console.log(location.name, x,y,-z);
-        }
+        this.location_manager.load_locations_from_kml(this.kml);
         this.#update_marker_labels();
         this.#request_render();
+
+        return this.kml;
     }
 
 
-    #setup_renderer()
+    #setup_renderer(canvas_el)
     {
 
-        this.renderer = new THREE.WebGLRenderer({canvas: document.getElementById('render_canvas')});
+        this.renderer = new THREE.WebGLRenderer({canvas: canvas_el});
         this.#display_width = window.innerWidth;
         this.#display_height = window.innerHeight;
         this.renderer.setSize( this.#display_width, this.#display_height );
@@ -216,6 +220,7 @@ class App
 
         if (view_change)
         {
+            // console.log('view changed');
             this.#update_marker_labels();
             this.#update_light();
             this.#update_compass();
@@ -398,16 +403,16 @@ class App
             let utm = this.project.convert_latlon_to_utm(this.devicepos.lat, this.devicepos.lon);
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             console.log(this.devicepos, utm, pos);
-            if (this.#follow_gps) this.#focus_camera_on_location(pos);
+            if (this.#follow_gps) this.focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
             this.#request_render();
             let el = document.getElementById('terrain_elevation');
             el.innerHTML = 'Elev: ' + (pos.y ?? '-9999') + 'm';
         }
         let el = document.getElementById('gps_info_lat');
-        el.innerHTML = 'Lat: ' + this.devicepos.lat;
+        el.innerHTML = 'Lat: ' + Helper.round(this.devicepos.lat, 6);
         el = document.getElementById('gps_info_lon');
-        el.innerHTML = 'Lon: ' + this.devicepos.lon;
+        el.innerHTML = 'Lon: ' + Helper.round(this.devicepos.lon, 6);
         el = document.getElementById('gps_info_accuracy');
         el.innerHTML = 'Acc: ' + this.devicepos.accuracy.toFixed(1) + 'm';
         el = document.getElementById('geolocation');
@@ -460,7 +465,7 @@ class App
         this.#follow_gps = true;
         let old_dist = this.controls.maxDistance;
         this.controls.maxDistance = 500;  // force the camera close to the gps position.
-        this.#focus_camera_on_location(this.#gps_marker.position);
+        this.focus_camera_on_location(this.#gps_marker.position);
         this.controls.update();
         this.controls.maxDistance = old_dist;
         let gps_el = $('#gps');
@@ -479,31 +484,8 @@ class App
 
 
     #update_marker_labels()
-    {let start = Date.now();
-        let self = this;
-        ScreenSpace.reset(this.#display_width, this.#display_height);
-        // For working out if the marker is in the frustrum
-        const frustum = new THREE.Frustum();
-        frustum.setFromProjectionMatrix(this.camera.projectionMatrix)
-        frustum.planes.forEach(function(plane) { plane.applyMatrix4(self.camera.matrixWorld) })
-        let cnt = 0;
-        for (let location of this.#locations)
-        {
-            let bb = new THREE.Box3().setFromObject(location.mesh);
-            if(frustum.intersectsBox(bb)) 
-            {
-                location.update_label_position(this.camera, this.#display_width, this.#display_height);
-            }
-            else if (location.label_el)
-            {
-                location.is_visible = false;
-                location.label_el.style.opacity = 0;
-            }
-            //if (cnt++ > 0) break;
-            if (location.is_visible) cnt++;
-        }
-        let end = Date.now();
-        //console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
+    {
+        if (this.location_manager) this.location_manager.update_marker_labels(this.camera, this.#display_width, this.#display_height);
     }
 
     #update_compass()
@@ -520,7 +502,7 @@ class App
      * Focuses the camera onto the given location. This only works for locations within the bounds of the current project.
      * @param {THREE.Vector3} location 
      */
-    #focus_camera_on_location(location)
+    focus_camera_on_location(location)
     {
         if (!this.project || !this.project.is_location_in_bounds(location)) return;
         // apply current distance difference to new target
@@ -551,7 +533,7 @@ class App
             let pos = this.project.get_3dposition_for_utm(utm.easting, utm.northing);
             if (pos.y == -9999) pos.y = 0;
             //console.log(this.devicepos, utm, pos);
-            if (this.#follow_gps) this.#focus_camera_on_location(pos);
+            if (this.#follow_gps) this.focus_camera_on_location(pos);
             this.#gps_marker.set_position(pos, this.devicepos.accuracy, this.camera, this.#display_width, this.#display_height);
             this.#request_render();
         }
@@ -574,6 +556,18 @@ class App
     stop_simulate_gps_update()
     {
         clearTimeout(this._sim_gps_update);
+    }
+
+    search_locations(search)
+    {
+        if (this.location_manager) return this.location_manager.search_locations(search);
+        return [];
+    }
+
+    find_location_by_name(name)
+    {
+        if (this.location_manager) return this.location_manager.find_location_by_name(name);
+        return null;
     }
 
 
