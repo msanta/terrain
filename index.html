@@ -166,7 +166,7 @@
         let kml_fileurl = null;
         let search_timeout = null;
         let app = new App();
-        app.initialise();
+        app.initialise(document.getElementById('render_canvas'));
 
         $('#project_browser_btn').on('click', show_project_browser);
         $('#project_browser').on('change', project_file_selected);

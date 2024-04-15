@@ -10,6 +10,7 @@ import { KML } from './kml.js';
 import { ScaleBar } from './distance.js';
 import { LocationManager } from './location_manager.js';
 import { PointerEventListener } from './pointer_event_listener.js';
+import { Helper } from './helper.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -409,9 +410,9 @@ class App
             el.innerHTML = 'Elev: ' + (pos.y ?? '-9999') + 'm';
         }
         let el = document.getElementById('gps_info_lat');
-        el.innerHTML = 'Lat: ' + this.devicepos.lat;
+        el.innerHTML = 'Lat: ' + Helper.round(this.devicepos.lat, 6);
         el = document.getElementById('gps_info_lon');
-        el.innerHTML = 'Lon: ' + this.devicepos.lon;
+        el.innerHTML = 'Lon: ' + Helper.round(this.devicepos.lon, 6);
         el = document.getElementById('gps_info_accuracy');
         el.innerHTML = 'Acc: ' + this.devicepos.accuracy.toFixed(1) + 'm';
         el = document.getElementById('geolocation');

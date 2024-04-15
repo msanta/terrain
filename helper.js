@@ -1,7 +1,9 @@
 
 import * as UTM from './geodesy/utm.js';
 
-
+/**
+ * Provides common functions.
+ */
 class Helper
 {
     /**
@@ -16,6 +18,19 @@ class Helper
         let latlon = new UTM.LatLon(lat, lon);
         let utm = latlon.toUtm(zone);
         return {zone: utm.zone, easting: utm.easting.toFixed(0), northing: utm.northing.toFixed(0)};
+    }
+
+    /**
+     * Rounds a number to the required decimal points.
+     * @param {number} number 
+     */
+    static round(number, decimals = 0)
+    {
+        if (decimals > 10) decimals = 10;
+        if (decimals < 0) decimals = 0;
+        let num = number * Math.pow(10, decimals);
+        num = Math.round(num);
+        return num / Math.pow(10, decimals);
     }
 }
 
