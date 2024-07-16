@@ -25,12 +25,11 @@ class KML
             req.onload = (e) => {
                 let doc = this.doc = req.response;
                 this.name = $(doc).find('name').first().text();
-                // Look for folders
+                // Look for all folders that exist. For each folder look for Placemark tags that are top level children of that folder.
                 let folders = $(doc).find('Folder');
                 for (let folder of folders)
                 {
-                    // Look for placemarks
-                    let placemarks = $(folder).find('Placemark');
+                    let placemarks = $(folder).children('Placemark');
                     let locations = [];
                     for (let placemark of placemarks)
                     {
