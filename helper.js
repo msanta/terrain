@@ -1,4 +1,5 @@
 
+import { App } from './app.js';
 import * as UTM from './geodesy/utm.js';
 
 /**
@@ -6,6 +7,8 @@ import * as UTM from './geodesy/utm.js';
  */
 class Helper
 {
+    static #app = null;
+
     /**
      * Converts a latitude and longitude into UTM.
      * @param {number} lat 
@@ -31,6 +34,23 @@ class Helper
         let num = number * Math.pow(10, decimals);
         num = Math.round(num);
         return num / Math.pow(10, decimals);
+    }
+
+    /**
+     * Get the Application instance.
+     * @return {App}
+     */
+    static get app()
+    {
+        return this.#app;
+    }
+    /**
+     * Set the Application instance.
+     * @param {App}
+     */
+    static set app(app)
+    {
+        this.#app = app;
     }
 }
 

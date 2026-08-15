@@ -11,6 +11,7 @@ import { ScaleBar } from './distance.js';
 import { LocationManager } from './location_manager.js';
 import { PointerEventListener } from './pointer_event_listener.js';
 import { Helper } from './helper.js';
+import { MaterialManager } from './material_manager.js';
 
 /**
  * The application. Top level class that manages everything.
@@ -63,6 +64,11 @@ class App
      * @type {object} Registered event handlers
      */
     #event_handlers = {};
+
+    /**
+     * @type {boolean} Indicates if the contours are shown or not.
+     */
+    #contours_visible = true;
 
     constructor()
     {
@@ -568,6 +574,33 @@ class App
     {
         if (this.location_manager) return this.location_manager.find_location_by_name(name);
         return null;
+    }
+
+    /**
+     * Toggle the contours on the terrain.
+     */
+    toggle_contours()
+    {
+        let mat = MaterialManager.get_material('terrain');
+        if (!this.#contours_visible)
+        {
+            mat = MaterialManager.get_material('terrain-contours');
+        }
+        for (let terrain of this.project.terrains)
+        {
+            for (let chunk of terrain.chunks)
+            {
+                chunk.set_material(mat);
+            }
+        }
+        console.log('set mat', mat);
+        this.#contours_visible = !this.#contours_visible;
+        this.#request_render();
+    }
+     
+    are_contours_visible()
+    {
+        return this.#contours_visible;
     }
 
 

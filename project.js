@@ -12,6 +12,7 @@ class Project
     scene;
     /**
      * The terrains for this project.
+     * @type {Terrain[]}
      */
     terrains;
 
