@@ -114,6 +114,10 @@
                     </button>
                     <div id="kml_details"></div>
                 </div>
+                <hr />
+                <div>
+                    <button type="button" id="toggle_contours_btn" class="btn btn-primary">Toggle Contours</button>
+                </div>
                 <div style="position: absolute; bottom: 10px">
                     <button type="button" id="debug_toggle_btn" class="btn btn-info">Show debug info</button>
                 </div>
@@ -159,6 +163,7 @@
     
     <script type="module">
         import {App} from './app.js';
+        import {Helper} from './helper.js';
 
         let gps_status = false;
         let debug_status = false;
@@ -172,6 +177,7 @@
         $('#project_browser').on('change', project_file_selected);
         $('#kml_browser_btn').on('click', show_kml_browser);
         $('#kml_browser').on('change', kml_file_selected);
+        $('#toggle_contours_btn').on('click', toggle_contours);
         $('#debug_toggle_btn').on('click', toggle_debug);
         $('#label1').on('click', () => console.log('clicked on label1'));
         $('#gps').on('click', () => app.switch_gps_state());
@@ -282,6 +288,11 @@
             console.log(el.target.textContent, loc);
             //app.request_render();
             //$('#search_results').html('');
+        }
+
+        function toggle_contours()
+        {
+            app.toggle_contours();
         }
 
 

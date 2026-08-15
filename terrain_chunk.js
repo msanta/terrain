@@ -1,3 +1,5 @@
+import { Helper } from './helper.js';
+import { MaterialManager } from './material_manager.js';
 import * as THREE from './three.module.min.js';
 
 class TerrainChunk
@@ -82,29 +84,31 @@ class TerrainChunk
         }
         window._data.profiler.end_section('set vertex values');
         
-        let colours = {
-            1: {r: 1, g: 0, b: 0},
-            2: {r: 1, g: 1, b: 0},
-            4: {r: 0, g: 1, b: 0},
-            10: {r: 0, g: 1, b: 1},
-            20: {r: 0, g: 0, b: 1}
-        };
-        let color = colours[this.info.lod] ?? {r: 0.8, g: 0.8, b: 0.8};
-        color = {r: 1, g: 1, b: 1};
-        var material = new THREE.MeshPhongMaterial({
-            color: new THREE.Color(color.r, color.g, color.b),
-            emissive: new THREE.Color(0.05, 0.05, 0.05),
-            specular: new THREE.Color(0.02, 0.02, 0.02),
-            shininess: 70,
-            flatShading: true,
-            //wireframe: true
-        });
+        // let colours = {
+        //     1: {r: 1, g: 0, b: 0},
+        //     2: {r: 1, g: 1, b: 0},
+        //     4: {r: 0, g: 1, b: 0},
+        //     10: {r: 0, g: 1, b: 1},
+        //     20: {r: 0, g: 0, b: 1}
+        // };
+        // let color = colours[this.info.lod] ?? {r: 0.8, g: 0.8, b: 0.8};
+        // color = {r: 1, g: 1, b: 1};
+        // var material = new THREE.MeshPhongMaterial({
+        //     color: new THREE.Color(color.r, color.g, color.b),
+        //     emissive: new THREE.Color(0.05, 0.05, 0.05),
+        //     specular: new THREE.Color(0.02, 0.02, 0.02),
+        //     shininess: 70,
+        //     flatShading: true,
+        //     //wireframe: true
+        // });
+
         window._data.profiler.start_section('create mesh and add to scene');
-        this.mesh = new THREE.Mesh(geometry, material);
+        let m = MaterialManager.get_material(Helper.app.are_contours_visible() ? 'terrain-contours' : 'terrain');
+        this.mesh = new THREE.Mesh(geometry, m);
         this.mesh.position.set(this.info.position.x + width / 2, 0, this.info.position.y - height / 2);
         this.mesh_center = new THREE.Vector3(this.info.position.x + this.info.size.w / 2, (min + max) / 2, this.info.position.y - this.info.size.h / 2);    // Need to know the position of the bounding box center for LOD functionality.
         this.mesh.layers.enable(1);      // all terrain meshes must be a member of layer 1. Needed for terrain raycasting.
-        
+        //this.mesh.geometry.computeVertexNormals();
         this.scene.add(this.mesh);
 
         window._data.profiler.end_section('create mesh and add to scene');
@@ -151,6 +155,15 @@ class TerrainChunk
             return geometry;
         }
         return window._data.planes[key].clone();
+    }
+
+    /**
+     * Set the material for this chunk's mesh.
+     * @param {THREE.Material} material 
+     */
+    set_material(material)
+    {
+        this.mesh.material = material;
     }
 
 }

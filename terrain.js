@@ -21,6 +21,7 @@ class Terrain
 
     /**
      * The terrain chunks that make up this terrain.
+     * @type {TerrainChunk[]}
      */
     chunks = [];
     
@@ -79,7 +80,7 @@ class Terrain
         const frustum = new THREE.Frustum();
         frustum.setFromProjectionMatrix(camera.projectionMatrix)
         frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
-
+        // Defines the chunk resolutions to use at different distances from the camera based on the data's native resolution.
         let levels = {
             0.5: {500: 0.5, 1000: 1, 2000: 2, 4000: 5, 8000: 10, 20000: 10},
             1: {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10, 20000: 20},
@@ -87,15 +88,11 @@ class Terrain
             5: {10000: 5, 20000: 20}
         }
         let pos = camera.position;
-        let inbb = [];
-        let updated = [];
-    let start = Date.now();
         for (let chunk of this.chunks)
         {
             let bb = new THREE.Box3().setFromObject(chunk.mesh);
-            if(frustum.intersectsBox(bb)) 
-            {
-                inbb.push(chunk.mesh);
+            //if(frustum.intersectsBox(bb)) 
+            //{
                 // let chunk_pos = new THREE.Vector3(chunk.mesh.position.x, chunk.mesh.position.y + 2000, chunk.mesh.position.z);
                 let dist = pos.distanceTo(chunk.mesh_center);
                 //console.log(dist);
@@ -110,16 +107,21 @@ class Terrain
                 }
                 if (chunk.info.lod != use_lod) 
                 {
-            let _t1 = Date.now();
-                    chunk.update_lod(use_lod);
-            let _t2 = Date.now();
-            // console.log('update chunk took', _t2 - _t1);
-                    updated.push(chunk);
+                    // Only compute higher resolution if the chunk is in view
+                    if (chunk.info.lod > use_lod && frustum.intersectsBox(bb))
+                    {
+                        console.info('higher res');
+                        chunk.update_lod(use_lod);
+                    }
+                    // Always compute lower resolution regardless if it is in view
+                    else if (chunk.info.lod < use_lod)
+                    {
+                        console.info("lower res");
+                        chunk.update_lod(use_lod);
+                    }
                 }
-            }
+            //}
         }
-    let end = Date.now();
-        //console.log('in bb: ', inbb.length, 'update: ', updated.length, 'Time taken: ', end - start);
     }
 
     /**
