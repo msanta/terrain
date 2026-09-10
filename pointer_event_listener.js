@@ -24,6 +24,16 @@ class PointerEventListener
     #event_handlers;
 
     /**
+     * Indicates if a click (mouse up) should be ignored. After a mouse down event, if a long press occurs or a mouse move, then mouse up should not triggere a click event.
+     */
+    #ignore_click;
+
+    /**
+     * The position of the mouse down event. Used to check if a mouse up event needs to be ignored if the position changes too much.
+     */
+    #mouse_down_pos;
+
+    /**
      * 
      * @param {HTMLElement} element The element to listen on. 
      */
@@ -67,8 +77,11 @@ class PointerEventListener
 
     #handle_pointer_down(e)
     {
+        this.#ignore_click = false;
+
         if (!e.isPrimary) 
         {
+            this.#ignore_click = true;
             clearTimeout(this.#long_press_timeout);     // more than one pointer means that a long press should not be fired.
             return;
         }
@@ -93,9 +106,10 @@ class PointerEventListener
 
     #handle_pointer_up(e)
     {
-        if (!e.isPrimary) return;
+        if (!e.isPrimary || this.#ignore_click) return;
         //console.info('pointer up');
         clearTimeout(this.#long_press_timeout);
+        this.#dispatch_event('clicked', e);
     }
 
     #handle_pointer_move(e)
@@ -103,12 +117,14 @@ class PointerEventListener
         if (!e.isPrimary) return;
         //console.info('pointer move');
         clearTimeout(this.#long_press_timeout);
+        this.#ignore_click = true;
     }
 
     #long_press(e)
     {
         this.#dispatch_event('long_press', e);
         //console.log('long press!', e);
+        this.#ignore_click = true;
     }
 
     /**

@@ -32,14 +32,24 @@ class PositionMarker
     #label_height;
     #label_state_change;
 
+    /**
+     * @type {object|null} Information for this marker.
+     */
+    info;
+
+    /**
+     * @type {string} Name of this marker.
+     */
+    name;
 
     /**
      * 
      * @param {THREE.Scene} scene The scene to which the marker will be added.
      * @param {THREE.Vector3} position The position of the marker.
      * @param {float} radius The radius of the sphere.
+     * @param {info} info Information to associate with this marker.
      */
-    constructor(scene, position = new THREE.Vector3(), radius = 1)
+    constructor(scene, position = new THREE.Vector3(), radius = 1, info = null)
     {
         const geometry = new THREE.SphereGeometry(radius, 10, 10); 
         const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
@@ -48,10 +58,14 @@ class PositionMarker
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(position.x, position.y, position.z);
         this.mesh.layers.enable(2);     // All marker meshes belong to layer 2.
+        this.mesh.userData['info'] = info;
+        this.mesh.name = (info != null ? info.name : '');
         this.scene = scene;
         scene.add(this.mesh);
         this.is_visible = false;
         this.#label_state_change = 0;
+        this.name = (info != null ? info.name : '');
+        this.info = info;
     }
 
 

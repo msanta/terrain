@@ -35,6 +35,8 @@ class KML
                     {
                         let name = $(placemark).find('name').text();
                         let coords = $(placemark).find('coordinates').text();
+                        let info = $(placemark).find('info').text();
+                        info = info != '' ? JSON.parse(info) : null;
                         // Placemarks can represent tracks which don't have a coordinates node. Skip them.
                         if (coords == '') continue;
                         coords = coords.split(',');
@@ -42,9 +44,10 @@ class KML
                             name: name,
                             lon: coords[0],
                             lat: coords[1],
-                            height: coords[2] ?? null
+                            height: coords[2] ?? null,
+                            info: info 
                         })
-                        //console.log(name, coords);
+                        //console.log(name, info);
                     }
                     let folder_name = $(folder).find('name').first().text();
                     this.locations[folder_name] = locations;

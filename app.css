@@ -203,3 +203,11 @@ body {
     position: absolute;
     overflow-y: scroll;
 }
+
+.marker_info_value {
+    border: 1px solid;
+    padding: 2px;
+    border-color: #cbcbcb00;
+    border-radius: 6px;
+    background-color: #cfe2ff;
+}
