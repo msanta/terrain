@@ -359,6 +359,75 @@ class App
         if (this.#follow_gps) this.unfollow_gps();
     }
 
+    // On click see if a location marker was selected. If so then display any info available on it.
+    #clicked_scene(e)
+    {
+        let pointer = {x: 0, y: 0};
+        const raycaster = new THREE.Raycaster();
+        raycaster.layers.set(2);    // only test against location markers
+
+        pointer.x = ( e.clientX / this.#display_width ) * 2 - 1;
+        pointer.y = - ( e.clientY / this.#display_height ) * 2 + 1;
+
+        // update the picking ray with the camera and pointer position
+        raycaster.setFromCamera( pointer, this.camera );
+
+        // calculate objects intersecting the picking ray
+        const intersects = raycaster.intersectObjects(this.scene.children);
+        if (intersects.length == 0) return;
+        // Show a modal that display information on all intersected markers.
+        let html = '<div class="container-lg"><div class="accordion" id="marker_info_accordion">';
+        let cnt = 0;
+        for (const intersection of intersects)
+        {
+            cnt++;
+            let expanded = 'false';
+            let show_class = '';
+            let collapsed_class = 'collapsed';
+            // If there is only one item then show it expanded
+            if (cnt == 1 && intersects.length == 1)
+            {
+                expanded = 'true';
+                show_class = 'show';
+                collapsed_class = '';
+            }
+            let userdata = intersection.object.userData;
+            if (userdata.info !== undefined)
+            {
+                let content_html = '';
+                let id = 'accordion_item_' + cnt;
+                for (let prop in userdata.info)
+                {
+                    let val = userdata.info[prop].replaceAll("\n", '<br/>');
+                    prop = prop.charAt(0).toUpperCase() + prop.slice(1);    // capitalise first letter
+                    content_html += '<h5 class="marker_info_header">' + prop + '</h5>';
+                    content_html += '<p class="marker_info_value">' + val + '<p>';
+                }
+                html += `
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button ${collapsed_class}" type="button" data-bs-toggle="collapse" data-bs-target="#${id}" aria-expanded="${expanded}" aria-controls="${id}">
+                        ${intersection.object.name} 
+                    </button>
+                    </h2>
+                    <div id="${id}" class="accordion-collapse collapse ${show_class}" data-bs-parent="#accordionExample">
+                        <div class="marker_info_accordion">
+                            <div class="p-2">
+                            ${content_html}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                console.log('show information', userdata.info);
+            }
+        }
+        html += '</div></div>';
+
+        $('#marker_info_body').html(html);
+        $('#marker_info').modal({backdrop: 'static'});
+        $('#marker_info').modal('show');
+    }
+
     /**
      * Change the GPS state when tapping the GPS icon. Can switch between on -> follow -> off.
      */
