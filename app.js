@@ -97,6 +97,7 @@ class App
         let self = this;
         this.pointerevents = new PointerEventListener(canvas_el);
         this.pointerevents.add_event_listener('dbl_down', (e) => self.#double_clicked_scene(e));
+        this.pointerevents.add_event_listener('clicked', (e) => self.#clicked_scene(e));
         //this.renderer.domElement.ondblclick = ((e) => self.#double_clicked_scene(e));
         this.#gps_marker = new GPSPositionMarker(this.scene, new THREE.Vector3(), document.getElementById('gps_loc'));
         this.#gps_marker.visible(false);
