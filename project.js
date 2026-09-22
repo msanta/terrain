@@ -3,6 +3,7 @@ import { Terrain, TerrainInfo } from './terrain.js';
 import { Profiler } from './profiler.js';
 import * as UTM from './geodesy/utm.js';
 import { Helper } from './helper.js';
+import { FeatureManager } from './feature_manager.js';
 
 class Project
 {
@@ -22,6 +23,18 @@ class Project
      * @type {object} Registered event handlers
      */
     #event_handlers = {};
+
+    /**
+     * List of features objects loaded.
+     * @type {array}
+     */
+    features = [];
+
+    /**
+     * Feature manager.
+     * @type {FeatureManager}
+     */
+    feature_manager;
 
     /**
      * Instantiates a new project.
@@ -54,10 +67,43 @@ class Project
             let buf = await zipdata.file(terrain.file).async('arraybuffer');
             Profiler.end_section('array buffer from zip');
             this.#load_terrain(terrain, buf);
-            console.info('added terrain: ', terrain);
+            //console.info('added terrain: ', terrain);
             //if (cnt++ > 0)
             //break;
         }
+
+        // See if a features file was specified and if so get the information.
+        if (project.features !== undefined)
+        {
+            for (let file of project.features)
+            {
+                if (zipdata.file(file) !== undefined)
+                {
+                    let features_data = await zipdata.file(file).async('string').then((data) => JSON.parse(data));
+                    this.features.push(features_data);
+                }
+                if (this.features.length > 0)
+                {
+                    let map = {
+                        offset: this.project_info.origin,
+                        lod: 4,
+                        chunk_size: 400
+                    };
+                    let chunks = [];
+                    for (let terrain of this.terrains)
+                    {
+                        for (let chunk of terrain.chunks)
+                        {
+                            chunks.push(chunk);
+                        }
+                    }
+                    this.feature_manager = new FeatureManager(map, chunks, this.features[0]['features'], document.getElementById('texture_canvases'));
+                    this.feature_manager.apply();
+                    console.log(this.feature_manager);
+                }
+            }
+        }
+
         window._data.load_profiler = Profiler.totals;
         //console.log(window._data.load_profiler);
 
@@ -144,6 +190,7 @@ class Project
             x: info.pos.x - this.project_info.origin.x, 
             y: -(info.pos.y - this.project_info.origin.y)
         };
+        TI.coordinate = info.pos;
         TI.native_resolution = info.resolution;
         console.log(TI);
         let T = new Terrain(this.scene, TI, buf);

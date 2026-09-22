@@ -101,7 +101,7 @@ class LocationManager
             if (marker.is_visible) cnt++;
         }
         let end = Date.now();
-        console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
+        //console.log('updating markers took ' + (end - start) + 'ms', 'visible: ', cnt);
     }
 
     destroy()

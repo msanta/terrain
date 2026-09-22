@@ -169,7 +169,7 @@ class App
         });
 
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera( 45, self.#display_width / self.#display_height, 1, 15000 );
+        this.camera = new THREE.PerspectiveCamera( 45, self.#display_width / self.#display_height, 1, 30000 );
         this.controls = new MapControls( this.camera, this.renderer.domElement );
         this.controls.maxDistance = 15000;
         this.controls.minDistance = 50;
