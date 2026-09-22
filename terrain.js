@@ -50,15 +50,19 @@ class Terrain
             for (let y = 0; y < chunks_y; y++)
             {
                 let TCI = new TerrainChunkInfo();
+                TCI.coordinate = {
+                    x: this.info.coordinate.x + this.info.chunk_size * x,
+                    y: this.info.coordinate.y + this.info.size.h - this.info.chunk_size * (y + 1)
+                };
                 TCI.data_size = this.info.data_size;
                 TCI.size = {w: this.info.chunk_size, h: this.info.chunk_size};
                 TCI.position = {
-                    x: this.info.position.x + this.info.chunk_size * y,
-                    y: this.info.position.y - this.info.size.h + this.info.chunk_size * (x + 1)
+                    x: this.info.position.x + this.info.chunk_size * x,
+                    y: this.info.position.y - this.info.size.h + this.info.chunk_size * (y + 1)
                 };
                 TCI.data_offset = {
-                    x: this.info.chunk_size / this.info.native_resolution * y,
-                    y: this.info.chunk_size / this.info.native_resolution * x
+                    x: this.info.chunk_size / this.info.native_resolution * x,
+                    y: this.info.chunk_size / this.info.native_resolution * y
                 };
                 TCI.native_resolution = this.info.native_resolution;
                 TCI.lod = 20;
@@ -110,13 +114,13 @@ class Terrain
                     // Only compute higher resolution if the chunk is in view
                     if (chunk.info.lod > use_lod && frustum.intersectsBox(bb))
                     {
-                        console.info('higher res');
+                        //console.info('higher res');
                         chunk.update_lod(use_lod);
                     }
                     // Always compute lower resolution regardless if it is in view
                     else if (chunk.info.lod < use_lod)
                     {
-                        console.info("lower res");
+                        //console.info("lower res");
                         chunk.update_lod(use_lod);
                     }
                 }
@@ -163,9 +167,14 @@ class Terrain
 class TerrainInfo
 {
     /**
+     * Coordinate of the bottom left corner of the terrain.
+     */
+    coordinate = {x: 0, y: 0};
+
+    /**
      * Position of terrain along the grid axis. Position defines the bottom left corner of the terrain.
      */
-    position = {x: 0, y: 0}; 
+    position = {x: 0, y: 0};
 
     /**
      * The size of the terrain in meters.

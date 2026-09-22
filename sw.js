@@ -1,6 +1,6 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
 
-const app_version = "v1.4.7";
+const app_version = "v1.5.0";
 
 const addResourcesToCache = async (resources) => {
     const cache = await caches.open(app_version);
@@ -48,7 +48,8 @@ self.addEventListener("install", (event) => {
             "./location_manager.js",
             "./helper.js",
             "./pointer_event_listener.js",
-            "./material_manager.js"
+            "./material_manager.js",
+            "./feature_manager.js"
         ]),
     );
     console.log('installed');
