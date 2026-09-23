@@ -33,6 +33,7 @@ class App
     prv_control_state;
     #user_is_updating_controls = false;
     #camera_position_changed = false;
+    #camera_moved_at = 0;
     /**
      * @type {Project} The project instance for this app.
      */
@@ -247,8 +248,10 @@ class App
             {
                 clearTimeout(this.#lod_update_timeout);
                 let self = this;
-                this.#lod_update_timeout = setTimeout((() => {self.#update_lod()}), 500);  // wait half a second before updating meshes to ensure the user has stopped moving. This is more of an issue on mobile devices. On desktops this delay could be reduced considerably.
+                // Start updating terrain chunks nearly immediately. The update function will only process a certain amount at a time depending on whether or not the camera moved.
+                this.#lod_update_timeout = setTimeout((() => {self.#update_lodNEW()}), 16);
             }
+            this.#camera_moved_at = Date.now();
         }
         else
         {
@@ -307,6 +310,35 @@ class App
         html += 'create mesh: ' + (totals['create mesh and add to scene'] ?? '') + '<br/>';
         html += 'set vertex: ' + (totals['set vertex values'] ?? '') + '</br>';
         el.innerHTML = html;
+        this.#request_render();
+    }
+
+    #update_lodNEW()
+    {
+        let limit = 40; // 40ms
+        let time_since_cam_update = Date.now() - this.#camera_moved_at;
+        if (time_since_cam_update < 50) limit = 10;    // update fewer if user is moving the camera.
+        //console.log('limit is ', limit, time_since_cam_update);
+        let start = Date.now();
+        // Get terrain chunks that are in view and where the lod has changed.
+        let chunks = this.project.get_chunks_that_require_update(this.camera);
+        // Sort by distance. Closest to camera should be processed first.
+        chunks = chunks.sort((a,b) => a.dist >= b.dist ? 1 : -1);
+        // Process as many chunks as possible within a time window. If more chunks remain set a timeout to process the remainder.
+        for (let i = 0; i < chunks.length; i++)
+        {
+            let chunk = chunks[i];
+            if (!chunk.in_view && time_since_cam_update < 500) continue;    // Do not update if user is moving and the chunk is out of view.
+            chunk.chunk.update_lod(chunk.lod);
+            if (Date.now() - start > limit && i < chunks.length - 1)
+            {
+                let self = this;
+                clearTimeout(this.#lod_update_timeout);
+                this.#lod_update_timeout = setTimeout((() => {self.#update_lodNEW()}), 16);
+                //console.log('processed ' + i + ' in ', Date.now() - start);
+                break;
+            }
+        }
         this.#request_render();
     }
 

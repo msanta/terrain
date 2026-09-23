@@ -122,7 +122,7 @@ class TerrainChunk
             Helper.app.project.feature_manager.render_canvas(`${this.info.coordinate.x}:${this.info.coordinate.y}`, this.#canvas_el, this.info.lod / this.info.native_resolution);
             this.texture = new THREE.CanvasTexture(this.#canvas_el);
             window._data.profiler.end_section('render features');
-            console.log('regen texture');
+            //console.log('regen texture');
         }
         
         //console.info(this.info, this.texture);
