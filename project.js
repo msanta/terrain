@@ -149,6 +149,25 @@ class Project
     }
 
     /**
+     * Get list of chunks that require a LOD update.
+     * @param {*} camera The camera for the scene. Needed to work out what LOD to apply to terrain chunks.
+     * @return {array} List of objects {chunk: chunk, lod: lod, dist: dist, in_view: in_view}
+     */
+    get_chunks_that_require_update(camera)
+    {
+        let to_update = [];
+        for (let terrain of this.terrains)
+        {
+            let chunks = terrain.get_chunks_that_require_update(camera);
+            for (let chunk of chunks)
+            {
+                to_update.push(chunk);
+            }
+        }
+        return to_update;
+    }
+
+    /**
      * Converts a latitude and longitude into UTM.
      * @param {number} lat 
      * @param {number} lon 

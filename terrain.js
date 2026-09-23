@@ -129,6 +129,58 @@ class Terrain
     }
 
     /**
+     * Get list of chunks that require a LOD update.
+     * @param {*} camera The camera for the scene. Needed to work out what LOD to apply to terrain chunks.
+     * @return {array} List of objects {chunk: chunk, lod: lod, dist: dist, in_view: in_view}
+     */
+    get_chunks_that_require_update(camera)
+    {
+        let to_update = [];
+        // For working out if a mesh is in the frustrum
+        const frustum = new THREE.Frustum();
+        frustum.setFromProjectionMatrix(camera.projectionMatrix)
+        frustum.planes.forEach(function(plane) { plane.applyMatrix4(camera.matrixWorld) })
+        // Defines the chunk resolutions to use at different distances from the camera based on the data's native resolution.
+        let levels = {
+            0.5: {500: 0.5, 1000: 1, 2000: 2, 4000: 5, 8000: 10, 12000: 20},
+            1: {1400: 1, 2200: 2, 4000: 4, 8000: 8, 10000: 10, 20000: 20},
+            2: {3000: 2, 6000: 4, 10000: 8, 20000: 20},
+            5: {10000: 5, 20000: 10}
+        }
+        let pos = camera.position;
+        for (let chunk of this.chunks)
+        {
+            let bb = new THREE.Box3().setFromObject(chunk.mesh);
+            let dist = pos.distanceTo(chunk.mesh_center);
+            let use_lod = 40;   // minimum lod
+            for (let l in levels[this.info.native_resolution])
+            {
+                if (dist <= l)
+                {
+                    use_lod = levels[this.info.native_resolution][l];
+                    break;
+                }
+            }
+            if (chunk.info.lod != use_lod) 
+            {
+                // Only add higher resolution if the chunk is in view. (When is a higher resolution chunk not be in view?)
+                let in_view = frustum.intersectsBox(bb);
+                if (chunk.info.lod > use_lod && in_view)
+                {
+                    to_update.push({chunk: chunk, lod: use_lod, dist: dist, in_view: in_view});
+                }
+                // Always add lower resolution regardless if it is in view. 
+                else if (chunk.info.lod < use_lod)
+                {
+                    to_update.push({chunk: chunk, lod: use_lod, dist: dist, in_view: in_view});
+                }
+            }
+        }
+
+        return to_update;
+    }
+
+    /**
      * Destroys this terrain, removing all associated meshes.
      */
     destroy()

@@ -262,7 +262,7 @@ class FeatureManager
         let draw = false;
         
         lod = lod / 2;  // divide by X to make canvas larger and give higher resolution. lod of 1 = 1m.
-        console.log(lod, canvas.el.id);
+        //console.log(lod, canvas.el.id);
         canvas.el.height = this.#map.chunk_size / lod;
         canvas.el.width = this.#map.chunk_size / lod;
         let ctx = canvas.el.getContext('2d');
